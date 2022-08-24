@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+<head>
+<script type="text/javascript">
+
+
+function selectText(nodeId) {
+    const node = document.getElementById(nodeId);
+
+    if (window.getSelection) {
+        var selection = window.getSelection();
+        var range = document.createRange();
+        range.selectNodeContents(node);
+        selection.removeAllRanges();
+        selection.addRange(range);
+    } else {
+        console.log("No selection supported");
+    }
+}
+
+ function load() {
+ 
+    setTimeout(function() {
+        console.log("Select text from div1");
+        selectText("divex");
+        setTimeout(function() {
+            console.log("Select text from div2");
+            selectText("divex2");
+            setTimeout(function() {
+                document.body.style.backgroundColor = "green";
+            }, 2000);
+        }, 5000);
+    }, 5000);
+ }
+
+</script>
+</head>
+<body onload="load()" bgcolor="yellow">
+<div width="100%" height="100%" caption="safdadf" id="divex">
+First text that will be selected after 5sec
+</div>
+
+<div width="100%" height="100%" caption="safdadf" id="divex2">
+Second text that will be selected after additional 5sec (10sec from start)
+</div>
+
+</body>
+</html>
