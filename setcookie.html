@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+<head>
+<script type="text/javascript">
+ function load() {
+
+   var params = location.search.substr(1).split("=");
+   setCookie(params[0], params[1], 5);
+
+   console.log("Cookie set " + params[0] + "=" + getCookie(params[0]));
+   
+   document.getElementById("set_cookie").innerHTML = "Cookie set: " + params[0] + "=" + getCookie(params[0]);
+   document.getElementById("all_cookies").innerHTML += document.cookie;
+ }
+
+ function getCookie(cname) {
+  let name = cname + "=";
+  let decodedCookie = decodeURIComponent(document.cookie);
+  let ca = decodedCookie.split(';');
+  for(let i = 0; i <ca.length; i++) {
+    let c = ca[i];
+    while (c.charAt(0) == ' ') {
+      c = c.substring(1);
+    }
+    if (c.indexOf(name) == 0) {
+      return c.substring(name.length, c.length);
+    }
+  }
+  return "";
+ }
+
+ function setCookie(cname, cvalue, exdays) {
+  const d = new Date();
+  d.setTime(d.getTime() + (exdays*24*60*60*1000));
+  let expires = "expires="+ d.toUTCString();
+  console.log("Expires: " + expires);
+  document.cookie = cname + "=" + cvalue + ";" + expires + ";path=/";
+ }
+
+</script>
+</head>
+<body onload="load()" bgcolor="red">
+<div width="100%" height="100%" id="set_cookie">
+Set cookies
+</div>
+<div width="100%" height="100%" id="all_cookies">
+All cookies:
+</div>
+</body>
+</html>
