@@ -24,7 +24,6 @@
      if (i >= count) {
        console.log("DONE! exit");
        clearInterval(inter);
-       document.getElementById("all_cookies").innerHTML = "All cookies: " + document.cookie;
        setTimeout(function() {
 
 	       var j = 0;
@@ -50,7 +49,11 @@
      var cookieName = "XYZ" + name + i + "XYZ";
      var value = "XYZvalue" + i + "XYZ";
      setCookie(cookieName, value, 5);
+     console.log("Cookie set " + cookieName + "=" + value);
      ++i;
+     
+     document.getElementById("all_cookies").innerHTML = "All cookies: " + document.cookie;
+
    }, 1);
  }
 
