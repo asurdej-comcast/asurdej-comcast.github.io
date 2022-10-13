@@ -50,7 +50,7 @@ function init() {
 			gainNode.connect(audioCtx.destination);
 
 			console.log("Setting gain");
-			gainNode.gain.value = 1.0;
+			gainNode.gain.value = 0.7;
 
 			if (audioCtx.state === 'suspended') {
 				audioCtx.resume();

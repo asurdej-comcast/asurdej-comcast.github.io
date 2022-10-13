@@ -36,9 +36,10 @@
       const source = audioCtx.createBufferSource();
       // Set the buffer in the AudioBufferSourceNode
       source.buffer = buffer;
-      // Connect the AudioBufferSourceNode to the
-      // destination so we can hear the sound
-      source.connect(audioCtx.destination);
+      var gainNode = audioCtx.createGain();
+      souce.connect(gainNode);
+      gainNode.connect(audioCtx.destination);
+      gainNode.gain.value = 0.7;
       // start the source playing
       source.start();
 
