@@ -8,18 +8,25 @@ Your browser does not support the HTML canvas tag.</canvas>
 <script>
 var c = document.getElementById("myCanvas");
 var ctx = c.getContext("2d");
+console.log("canvas size: " + c.width + "x" + c.height + "[px]");
 
-console.log("Context: " + ctx);
+var colors = ["pink", "blue", "yellow", "white", "purple", "red", "green"];
+var colorIdx = 0;
 
-// Fill with gradient
-ctx.fillStyle = "red";
+changeColor();
 
-console.log("canvas size: " + c.width + "x" + c.height + " [px");
-ctx.fillRect(0,0,c.width,c.height);
+function changeColor() {
+  if (colorIdx >= colors.length)
+     return;
+  document.body.bgColor = colors[colorIdx];
+  setTimeout(function() {
+    ctx.fillStyle = colors[colorIdx];
+    ctx.fillRect(0,0,c.width, c.height);
+    ++colorIdx;
+    setTimeout(changeColor, 3000);
+  }, 1000);
+}
 
-setTimeout(function() {
- //ctx.fillRect(0,0,c.width,c.height);
-}, 5);
 </script>
 
 </body>
