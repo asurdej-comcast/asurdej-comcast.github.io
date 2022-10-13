@@ -80,10 +80,22 @@ function initWebaudio() {
       };
 };
 
+function initVideo() {
+  var url = g_params["url"];
+  if (!url) {
+    url = "mov_bbb.mp4";
+  }
+
+  console.log("url: " + url);
+  var vid = document.getElementById("video");
+  vid.src = url;
+  vid.play(1.0);
+}
+
 function init() {
       initWebaudio();
       initSS();
-      document.getElementById("video").play(1.0);
+      initvideo();
 }
   </script>
   </head>
@@ -91,6 +103,6 @@ function init() {
   <body onload="init()" bgColor="Lavender">
     "White noise page"
     <button onclick="init()">Start test</button>
-    <video src="mov_bbb.mp4" controls id="video"></video>
+    <video width="640" height="320" controls id="video"></video>
   </body>
 </html>
