@@ -29,6 +29,7 @@ function initSS() {
     sp.onerror = uterr;
 
     if (g_params["repeat"]) {
+      console.log("repeating mode");
       sp.onend = function(e) { window.speechSynthesis.speak(sp); };
     }
   
@@ -71,7 +72,7 @@ function initWebaudio() {
       var gainNode = audioCtx.createGain();
       source.connect(gainNode);
       gainNode.connect(audioCtx.destination);
-      gainNode.gain.value = 0.15;
+      gainNode.gain.value = 0.05;
       // start the source playing
       source.start();
 
@@ -95,7 +96,7 @@ function initVideo() {
 function init() {
       initWebaudio();
       initSS();
-      initvideo();
+      initVideo();
 }
   </script>
   </head>
