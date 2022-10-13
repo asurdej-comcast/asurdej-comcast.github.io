@@ -73,6 +73,12 @@ function initWebaudio() {
       source.connect(gainNode);
       gainNode.connect(audioCtx.destination);
       gainNode.gain.value = 0.05;
+      if (g_params["gain"]) {
+        var gain = parseFloat(g_params["gain"]);
+        console.log("Custom gain: " + gain);
+        gainNode.gain.value = gain;
+      }
+
       // start the source playing
       source.start();
 

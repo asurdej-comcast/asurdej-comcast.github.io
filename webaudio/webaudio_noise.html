@@ -3,6 +3,16 @@
   <head>
   
   <script>
+
+var g_fields = location.search.substring(1).split('&');
+var g_params = {};
+for (var i = 0; i < g_fields.length; ++i) {
+  var kv = g_fields[i].split('=');
+  g_params[kv[0]] = kv.slice(1).join('=');
+  console.log("g_params[" + kv[0] + "] := '" + g_params[kv[0]] + "'");
+}
+
+
     function init() {
       const AudioContextAPI = window.AudioContext || window.webkitAudioContext;
       if (!AudioContextAPI) {
@@ -39,7 +49,13 @@
       var gainNode = audioCtx.createGain();
       source.connect(gainNode);
       gainNode.connect(audioCtx.destination);
+
       gainNode.gain.value = 0.7;
+      if (g_params["gain"]) {
+        var gain = parseFloat(g_params["gain"]);
+        console.log("Custom gain: " + gain);
+        gainNode.gain.value = gain;
+      }
       // start the source playing
       source.start();
 
