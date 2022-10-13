@@ -1,73 +1,17 @@
 <!DOCTYPE html>
 <html>
 <head>
+<script src="params.js"></script>
+<script src="webaudio.js"></script>
 <script type="text/javascript">
 
-var g_fields = location.search.substring(1).split('&');
-var g_params = {};
-for (var i = 0; i < g_fields.length; ++i) {
-  var kv = g_fields[i].split('=');
-  g_params[kv[0]] = kv.slice(1).join('=');
-  console.log("g_params[" + kv[0] + "] := '" + g_params[kv[0]] + "'");
-}
-
-
 function init() {
-	console.log("Test start !");
-	const AudioContextAPI = window.AudioContext || window.webkitAudioContext;
-	if (!AudioContextAPI) {
-		console.log("WebAudio not supported by your browser");
-		return;
-	}
-
-	var audioCtx = new AudioContextAPI();
-	
-	var url = g_params["url"];
-		if (url == null) {
-		url = "mov_bbb.wav";
-	}
-
-	var request = new XMLHttpRequest();
-	request.open('GET', url, true);
-	request.responseType = 'arraybuffer';
-	request.onloadend = function() {
-		console.log("Got audio file");
-		if (request.response.length <= 0) {
-			console.log("Got empty response");
-			return;
-		}
-		console.log("Start decoding");
-		audioCtx.decodeAudioData(request.response, function(buffer) {
-			console.log("Audio data decoded: " + buffer);
-			var source = audioCtx.createBufferSource(); // creates a sound source
-			source.buffer = buffer;                    // tell the source which sound to play
-
-			// Create a gain node.
-			var gainNode = audioCtx.createGain();
-			// Connect the source to the gain node.
-			source.connect(gainNode);
-			// Connect the gain node to the destination.
-			gainNode.connect(audioCtx.destination);
-
-			console.log("Setting gain");
-			gainNode.gain.value = 0.7;
-
-			if (audioCtx.state === 'suspended') {
-				audioCtx.resume();
-			}
-			console.log("Starting plaback!!!!");
-			source.start();
-		}, function(e) {
-			console.log("Failed to decoe audio data: " + e);
-		});
-	};
-	console.log("Sending XHR request for " + url);
-	request.send();
+	playFromUrlParam();
 }
 
 </script>
 </head>
 <body onload="init();" bgColor="lightcyan">
-<button onclick="init()">Start test if not yet started</button>
+<button onclick="init()">Start test</button>
 </body>
 </html>

@@ -1,73 +1,18 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
+<head>
+  <script src="params.js"></script>
+  <script src="webaudio.js"></script>
   
   <script>
-
-var g_fields = location.search.substring(1).split('&');
-var g_params = {};
-for (var i = 0; i < g_fields.length; ++i) {
-  var kv = g_fields[i].split('=');
-  g_params[kv[0]] = kv.slice(1).join('=');
-  console.log("g_params[" + kv[0] + "] := '" + g_params[kv[0]] + "'");
-}
-
-
     function init() {
-      const AudioContextAPI = window.AudioContext || window.webkitAudioContext;
-      if (!AudioContextAPI) {
-        console.log("Webaudio not supported!");
-        return;
-      }
-      var audioCtx = new AudioContextAPI();
-
-      // Stereo
-      let channels = 2;
-      // Create an empty two second stereo buffer at the
-      // sample rate of the AudioContext
-      const frameCount = audioCtx.sampleRate * 10.0;
-
-      var buffer = audioCtx.createBuffer(channels, frameCount, audioCtx.sampleRate);
-
-      // Fill the buffer with white noise;
-      // just random values between -1.0 and 1.0
-      for (let channel = 0; channel < channels; channel++) {
-        // This gives us the actual array that contains the data
-        const nowBuffering = buffer.getChannelData(channel);
-        for (let i = 0; i < frameCount; i++) {
-          // Math.random() is in [0; 1.0]
-          // audio needs to be in [-1.0; 1.0]
-          nowBuffering[i] = Math.random() * 2 - 1;
-        }
-      }
-
-      // Get an AudioBufferSourceNode.
-      // This is the AudioNode to use when we want to play an AudioBuffer
-      const source = audioCtx.createBufferSource();
-      // Set the buffer in the AudioBufferSourceNode
-      source.buffer = buffer;
-      var gainNode = audioCtx.createGain();
-      source.connect(gainNode);
-      gainNode.connect(audioCtx.destination);
-
-      gainNode.gain.value = 0.7;
-      if (g_params["gain"]) {
-        var gain = parseFloat(g_params["gain"]);
-        console.log("Custom gain: " + gain);
-        gainNode.gain.value = gain;
-      }
-      // start the source playing
-      source.start();
-
-      source.onended = () => {
-        console.log("White noise finished.");
-      };
+      playNoise(10);
     };
   </script>
-  </head>
+</head>
 
-  <body onload="init()" bgColor="green">
-    "White noise page"
-    <button onclick="init()">Make some noise</button>
-  </body>
+<body onload="init()" bgColor="green">
+  "White noise page"
+  <button onclick="init()">Make some noise</button>
+</body>
 </html>

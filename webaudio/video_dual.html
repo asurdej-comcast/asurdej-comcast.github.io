@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    
+    <style>
+      video {
+        width: 480px;
+        height: 250px;
+        border-style: solid;
+        border-color: red;
+        border-width: 2px;
+      }
+    </style>
+
+    <script>
+
+    var g_fields = location.search.substring(1).split('&');
+    var g_params = {};
+    for (var i = 0; i < g_fields.length; ++i) {
+      var kv = g_fields[i].split('=');
+      g_params[kv[0]] = kv.slice(1).join('=');
+      console.log("g_params[" + kv[0] + "] := '" + g_params[kv[0]] + "'");
+    }
+
+    function setup(tag_name) {
+      var video = document.getElementById(tag_name);
+      if (g_params["type"] != null) {
+        video.type = g_params["type"];
+      }
+
+      var url_param_name = "url0";
+      if (tag_name == "video1")
+        url_param_name = "url1";
+
+      var url = g_params[url_param_name];
+      if (url == null) {
+        url = g_params["url"];
+      }
+      if (url == null) {
+        url = "mov_bbb.mp4";
+      }
+
+      console.log("setup(" + tag_name + ") : with url '" + url + "'");
+
+      video.src = url;
+    }
+
+    function open_load(tag_name) {
+      console.log("load()");
+      setup(tag_name);
+      var video = document.getElementById(tag_name);
+      console.log("video.load()");
+      video.load()
+    }
+    function open_pause(tag_name) {
+      console.log("open_pause()");
+      setup(tag_name);
+      var video = document.getElementById(tag_name);
+      console.log("video.pause()");
+      video.pause()
+    }
+    function open_play_pause(tag_name) {
+      console.log("open_play_pause()");
+      setup(tag_name);
+      var video = document.getElementById(tag_name);
+      console.log("video.play()");
+      video.play()
+      console.log("video.pause()");
+      video.pause()
+    }
+    function open_play(tag_name, speed) {
+      console.log("open_play(" + speed + ")");
+      setup(tag_name);
+      var video = document.getElementById(tag_name);
+      console.log("video.play(" + speed + ")");
+      video.play(speed);
+    }
+
+    function x_close(tag_name) {
+      console.log("close()");
+      var video = document.getElementById(tag_name);
+      console.log("video.pause()");
+      video.pause();
+      console.log("video.src = ''");
+      video.src = "";
+    }
+    function pause(tag_name) {
+      var video = document.getElementById(tag_name);
+      console.log("video.pause()");
+      video.pause();
+    }
+    function play(tag_name) {
+      var video = document.getElementById(tag_name);
+      console.log("video.play()");
+      video.play();
+    }
+
+    function seek_forward(tag_name, seconds) {
+      var video = document.getElementById(tag_name);
+      var pos = video.currentTime + seconds;
+      console.log("video.currentTime = " + pos);
+      video.currentTime = pos;
+    }
+    function seek_back(tag_name, seconds) {
+      var video = document.getElementById(tag_name);
+      var pos = video.currentTime - seconds;
+      if (pos < 0)
+        pos = 0;
+      console.log("video.currentTime = " + pos);
+      video.currentTime = pos;
+    }
+    function speed_control(tag_name, speed) {
+      var video = document.getElementById(tag_name);
+      console.log("video.playbackRate = " + speed);
+      video.playbackRate = speed;
+    }
+
+    function onLoad() {
+      var tag_name = 'video0';
+      if (g_params["start"]) {
+        open_play(tag_name, 1.0);
+      }
+      if (g_params["load"]) {
+        open_load(tag_name);
+      }
+      if (g_params["start_paused"]) {
+        open_pause(tag_name);
+      }
+      if (g_params["start_zero"]) {
+        open_play(tag_name, 0.0);
+      }
+    }
+
+    </script>
+
+  </head>
+  <body onload="onLoad()">
+
+    <div style="position: absolute; left: 0px; top: 0px">
+
+      <button onclick="open_load('video0')">Open (load)</button>
+      <button onclick="open_pause('video0')">Open (pause)</button>
+      <br>
+      <button onclick="open_play_pause('video0')">Open (play+pause)</button>
+      <button onclick="open_play('video0', 0.0)">Open (play speed=0)</button>
+      <br>
+      <button onclick="open_play('video0', 1.0)">Open (play)</button>
+      <button onclick="x_close('video0')">Close</button>
+      <br>
+      <button onclick="pause('video0')">Pause</button>
+      <button onclick="play('video0')" >Play</button>
+      <br>
+      <button onclick="seek_back('video0', 1)">Back 1s</button>
+      <button onclick="seek_forward('video0', 1)">Fwd 1s</button>
+      <br>
+      <button onclick="seek_forward('video0', 10)">Fwd 10s</button>
+      <button onclick="seek_back('video0', 10)">Back 10s</button>
+      <button onclick="seek_back('video0', 2)">Back 2s</button>
+      <br>
+      <video id="video0" preload="none" type="video/mpeg" controls>
+      </video>
+
+    </div>
+
+    <div style="position: absolute; left: 500px; top: 0px">
+
+      <button onclick="open_load('video1')">Open (load)</button>
+      <button onclick="open_pause('video1')">Open (pause)</button>
+      <br>
+      <button onclick="open_play_pause('video1')">Open (play+pause)</button>
+      <button onclick="open_play('video1', 0.0)">Open (play speed=0)</button>
+      <br>
+      <button onclick="open_play('video1', 1.0)">Open (play)</button>
+      <button onclick="x_close('video1')">Close</button>
+      <br>
+      <button onclick="pause('video1')">Pause</button>
+      <button onclick="play('video1')" >Play</button>
+      <br>
+      <button onclick="seek_back('video1', 1)">Back 1s</button>
+      <button onclick="seek_forward('video1', 1)">Fwd 1s</button>
+      <br>
+      <button onclick="seek_forward('video1', 10)">Fwd 10s</button>
+      <button onclick="seek_back('video1', 10)">Back 10s</button>
+      <button onclick="seek_back('video1', 2)">Back 2s</button>
+      <button onclick="open_load('video1'); open_load('video0');">Open load both</button>
+      <br>
+      <video id="video1" preload="none" type="video/mpeg">
+      </video>
+
+    </div>
+
+</body></html>

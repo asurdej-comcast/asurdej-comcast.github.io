@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    
+    <style>
+      audio {
+        width: 640px;
+        height: 320px;
+        border-style: solid;
+        border-color: red;
+        border-width: 2px;
+      }
+    </style>
+
+    <script src="params.js"></script>
+    <script>
+
+    function setup(tag_name) {
+      var video = document.getElementById(tag_name);
+      if (g_params["type"] != null) {
+        video.type = g_params["type"];
+      }
+
+      var url_param_name = "url0";
+      if (tag_name == "audio1")
+        url_param_name = "url1";
+      if (tag_name == "audio3")
+        url_param_name = "url3";
+      if (tag_name == "audio4")
+        url_param_name = "url4";
+
+      var url = g_params[url_param_name];
+      if (url == null) {
+        url = g_params["url"];
+      }
+      if (url == null) {
+        url = "mov_bbb.wav";
+      }
+
+      console.log("setup(" + tag_name + ") : with url '" + url + "'");
+
+      video.src = url;
+    }
+
+    function open_load(tag_name) {
+      console.log("load()");
+      setup(tag_name);
+      var video = document.getElementById(tag_name);
+      console.log("video.load()");
+      video.load()
+    }
+    function open_pause(tag_name) {
+      console.log("open_pause()");
+      setup(tag_name);
+      var video = document.getElementById(tag_name);
+      console.log("video.pause()");
+      video.pause()
+    }
+    function open_play_pause(tag_name) {
+      console.log("open_play_pause()");
+      setup(tag_name);
+      var video = document.getElementById(tag_name);
+      console.log("video.play()");
+      video.play()
+      console.log("video.pause()");
+      video.pause()
+    }
+    function open_play(tag_name, speed) {
+      console.log("open_play(" + speed + ")");
+      setup(tag_name);
+      var video = document.getElementById(tag_name);
+      console.log("video.play(" + speed + ")");
+      video.play(speed);
+    }
+
+    function x_close(tag_name) {
+      console.log("x_close()");
+      var video = document.getElementById(tag_name);
+      console.log("video.pause()");
+      video.pause();
+      console.log("video.src = ''");
+      video.src = "";
+    }
+    function pause(tag_name) {
+      var video = document.getElementById(tag_name);
+      console.log("video.pause()");
+      video.pause();
+    }
+    function play(tag_name) {
+      var video = document.getElementById(tag_name);
+      console.log("video.play()");
+      video.play();
+    }
+
+    function seek_forward(tag_name, seconds) {
+      var video = document.getElementById(tag_name);
+      var pos = video.currentTime + seconds;
+      console.log("video.currentTime = " + pos);
+      video.currentTime = pos;
+    }
+    function seek_back(tag_name, seconds) {
+      var video = document.getElementById(tag_name);
+      var pos = video.currentTime - seconds;
+      if (pos < 0)
+        pos = 0;
+      console.log("video.currentTime = " + pos);
+      video.currentTime = pos;
+    }
+    function speed_control(tag_name, speed) {
+      var video = document.getElementById(tag_name);
+      console.log("video.playbackRate = " + speed);
+      video.playbackRate = speed;
+    }
+
+    function onLoad() {
+      var tag_name = 'audio0';
+      if (g_params["start"]) {
+        open_play(tag_name, 1.0);
+      }
+      if (g_params["load"]) {
+        open_load(tag_name);
+      }
+      if (g_params["start_paused"]) {
+        open_pause(tag_name);
+      }
+      if (g_params["start_zero"]) {
+        open_play(tag_name, 0.0);
+      }
+    }
+
+    </script>
+
+  </head>
+  <body onload="onLoad()">
+
+    <div style="position: absolute; left: 0px; top: 0px">
+
+      <button onclick="open_load('audio0')">Open (load)</button>
+      <button onclick="open_pause('audio0')">Open (pause)</button>
+      <br>
+      <button onclick="open_play_pause('audio0')">Open (play+pause)</button>
+      <button onclick="open_play('audio0', 0.0)">Open (play speed=0)</button>
+      <br>
+      <button onclick="open_play('audio0', 1.0)">Open (play)</button>
+      <button onclick="x_close('audio0')">Close</button>
+      <br>
+      <button onclick="pause('audio0')">Pause</button>
+      <button onclick="play('audio0')" >Play</button>
+      <br>
+      <button onclick="seek_back('audio0', 1)">Back 1s</button>
+      <button onclick="seek_forward('audio0', 1)">Fwd 1s</button>
+      <br>
+      <button onclick="seek_forward('audio0', 10)">Fwd 10s</button>
+      <button onclick="seek_back('audio0', 10)">Back 10s</button>
+      <button onclick="seek_back('audio0', 2)">Back 2s</button>
+      <br>
+      <audio id="audio0" preload="none" type="audio/mpeg" controls>
+      </audio>
+
+    </div>
+
+    <div style="position: absolute; left: 500px; top: 0px">
+
+      <button onclick="open_load('audio1')">Open (load)</button>
+      <button onclick="open_pause('audio1')">Open (pause)</button>
+      <br>
+      <button onclick="open_play_pause('audio1')">Open (play+pause)</button>
+      <button onclick="open_play('audio1', 0.0)">Open (play speed=0)</button>
+      <br>
+      <button onclick="open_play('audio1', 1.0)">Open (play)</button>
+      <button onclick="x_close('audio1')">Close</button>
+      <br>
+      <button onclick="pause('audio1')">Pause</button>
+      <button onclick="play('audio1')" >Play</button>
+      <br>
+      <button onclick="seek_back('audio1', 1)">Back 1s</button>
+      <button onclick="seek_forward('audio1', 1)">Fwd 1s</button>
+      <br>
+      <button onclick="seek_forward('audio1', 10)">Fwd 10s</button>
+      <button onclick="seek_back('audio1', 10)">Back 10s</button>
+      <button onclick="seek_back('audio1', 2)">Back 2s</button>
+      <button onclick="open_load('audio1'); open_load('audio0');">Open load both</button>
+      <br>
+      <audio id="audio1" preload="none" type="audio/mpeg" controls>
+      </audio>
+
+    </div>
+    
+        <div style="position: absolute; left: 0; top: 500px">
+
+      <button onclick="open_load('audio3')">Open (load)</button>
+      <button onclick="open_pause('audio3')">Open (pause)</button>
+      <br>
+      <button onclick="open_play_pause('audio3')">Open (play+pause)</button>
+      <button onclick="open_play('audio3', 0.0)">Open (play speed=0)</button>
+      <br>
+      <button onclick="open_play('audio3', 1.0)">Open (play)</button>
+      <button onclick="x_close('audio3')">Close</button>
+      <br>
+      <button onclick="pause('audio3')">Pause</button>
+      <button onclick="play('audio3')" >Play</button>
+      <br>
+      <button onclick="seek_back('audio3', 1)">Back 1s</button>
+      <button onclick="seek_forward('audio3', 1)">Fwd 1s</button>
+      <br>
+      <button onclick="seek_forward('audio3', 10)">Fwd 10s</button>
+      <button onclick="seek_back('audio3', 10)">Back 10s</button>
+      <button onclick="seek_back('audio3', 2)">Back 2s</button>
+      <br>
+      <audio id="audio3" preload="none" type="audio/mpeg" controls>
+      </audio>
+
+    </div>
+    
+        <div style="position: absolute; left: 500px; top: 500px">
+
+      <button onclick="open_load('audio4')">Open (load)</button>
+      <button onclick="open_pause('audio4')">Open (pause)</button>
+      <br>
+      <button onclick="open_play_pause('audio4')">Open (play+pause)</button>
+      <button onclick="open_play('audio4', 0.0)">Open (play speed=0)</button>
+      <br>
+      <button onclick="open_play('audio4', 1.0)">Open (play)</button>
+      <button onclick="x_close('audio4')">Close</button>
+      <br>
+      <button onclick="pause('audio4')">Pause</button>
+      <button onclick="play('audio4')" >Play</button>
+      <br>
+      <button onclick="seek_back('audio4', 1)">Back 1s</button>
+      <button onclick="seek_forward('audio4', 1)">Fwd 1s</button>
+      <br>
+      <button onclick="seek_forward('audio4', 10)">Fwd 10s</button>
+      <button onclick="seek_back('audio4', 10)">Back 10s</button>
+      <button onclick="seek_back('audio4', 2)">Back 2s</button>
+      <button onclick="open_load('audio4'); open_load('audio3');">Open load both</button>
+      <br>
+      <audio id="audio4" preload="none" type="audio/mpeg" controls>
+      </audio>
+
+    </div>
+    
+    
+</body></html>
