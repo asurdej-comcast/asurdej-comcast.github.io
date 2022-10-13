@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head>
+<script type="text/javascript">
+
+var g_fields = location.search.substring(1).split('&');
+var g_params = {};
+for (var i = 0; i < g_fields.length; ++i) {
+  var kv = g_fields[i].split('=');
+  g_params[kv[0]] = kv.slice(1).join('=');
+  console.log("g_params[" + kv[0] + "] := '" + g_params[kv[0]] + "'");
+}
+
+  function uterr(e) {
+    console.log("Error:");
+    console.log(e);
+    console.log("Error end!");
+  }
+  
+  function init() {
+
+    if (!window.speechSynthesis) {
+      console.log("Browser doesn't support speech synthesis");
+      return;
+    }
+    
+    console.log("speech synthesis supported");
+    var sp = new SpeechSynthesisUtterance("speech synthesis. speech synthesis. speech synthesis. speech synthesis. speech synthesis. speech synthesis. speech synthesis. speech synthesis. speech synthesis");
+    sp.onerror = uterr;
+
+    if (g_params["repeat"]) {
+      sp.onend = function(e) { window.speechSynthesis.speak(sp); };
+    }
+  
+    window.speechSynthesis.speak(sp);
+}
+</script>
+</head>
+<body onload="init()" bgColor="yellow">
+  Speechsynthesis
+<button onclick="init()">Start</button>
+<div>
+</body>
+</html>

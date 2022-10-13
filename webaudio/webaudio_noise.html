@@ -37,7 +37,7 @@
       // Set the buffer in the AudioBufferSourceNode
       source.buffer = buffer;
       var gainNode = audioCtx.createGain();
-      souce.connect(gainNode);
+      source.connect(gainNode);
       gainNode.connect(audioCtx.destination);
       gainNode.gain.value = 0.7;
       // start the source playing
