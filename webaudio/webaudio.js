@@ -18,9 +18,9 @@ function playNoise(durationSec) {
   // sample rate of the AudioContext
   let duration = 2.0;
   if (!isNaN(durationSec)) {
-    console.log("Generating noise with duration: " + duration + "[sec]");
     duration = durationSec;
   }
+  console.log("Generating noise with duration: " + duration + "[sec]");
   const frameCount = audioCtx.sampleRate * duration;
 
   var buffer = audioCtx.createBuffer(channels, frameCount, audioCtx.sampleRate);
@@ -38,12 +38,12 @@ function playNoise(durationSec) {
   source.connect(gainNode);
   gainNode.connect(audioCtx.destination);
   
-  gainNode.gain.value = 0.2;
   let gain = parseFloat(g_params["gain"]);
-  if (!isNaN(gain)) {
-    console.log("Setting custom gain: " + gain);
-    gainNode.gain.value = gain;
+  if (isNaN(gain)) {
+    gain = 0.2;
   }
+  console.log("Setting gain: " + gain);
+  gainNode.gain.value = gain;
 
   source.start();
 
