@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head>
+<script src="params.js"></script>
+<script>
+function playMedia(tagName, url, timeout = 0) {
+  var playfunc = function() {
+    console.log("setting url for tag " + tagName + ", " + url);
+    var media = document.getElementById(tagName);
+    media.src = url;
+    media.play(1.0);
+  }
+  if (timeout != 0) {
+    setTimeout(playfunc, timeout);
+  } else {
+    playfunc();
+  }
+}
+
+function init() {
+  var vidurl = g_params["videourl"];
+  if (!vidurl) {
+    vidurl = "mov_bbb.mp4";
+  }
+  var audurl = g_params["audiourl"];
+  if (!audurl) {
+    audurl = "chrono.mp3";
+  }
+
+  playMedia("audio", audurl);
+  playMedia("video", vidurl, 5000);
+}
+</script>
+</head>
+<body onload="init()" bgcolor="#e8f8f5">
+<div>
+<button onclick="init()">Play audio</button>
+<audio id="audio" controls widht="500" height="250"></audio>
+<br>
+<video id="video" controls widht="500" height="250"></audio>
+</div>
+
+</body>
+</html>
