@@ -8,13 +8,13 @@
 <script>
 
 function initVideo() {
-  var url = g_params["videourl"];
+  var url = g_params["audiourl"];
   if (!url) {
-    url = "mov_bbb.mp4";
+    url = "mov_bbb.wav";
   }
 
   console.log("url: " + url);
-  var vid = document.getElementById("video");
+  var vid = document.getElementById("audio");
   vid.src = url;
   vid.play(1.0);
 }
@@ -29,6 +29,6 @@ function init() {
 
   <body onload="init()" bgColor="Lavender">
     <button onclick="init()">Start test</button>
-    <video width="640" height="320" controls id="video"></video>
+    <audio width="640" height="320" controls id="audio"></audio>
   </body>
 </html>
