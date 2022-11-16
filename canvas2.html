@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+<body>
+
+<canvas id="myCanvas" width="1280" height="720" style="border:1px solid #d3d3d3;">
+Your browser does not support the HTML canvas tag.</canvas>
+
+<script>
+var c = document.getElementById("myCanvas");
+var ctx = c.getContext("2d");
+console.log("canvas size: " + c.width + "x" + c.height + "[px]");
+
+var colors = ["white", "cyan"];
+var colorIdx = 0;
+
+var sizes = [ "1200", "1600" ];
+var sizesIdx = 0;
+
+changeColor();
+
+
+function changeColor() {
+  if (colorIdx >= colors.length)
+     return;
+
+    resizeCanvas();
+
+    ctx.fillStyle = colors[colorIdx];
+    ctx.fillRect(0,0,c.width, c.height);
+    colorIdx = (colorIdx + 1) % colors.length;
+
+    setTimeout(changeColor, 50);
+}
+
+function resizeCanvas() {
+  c.width = sizes[sizesIdx];
+  sizesIdx = (sizesIdx + 1) % 2;
+}
+
+</script>
+
+</body>
+</html>
+
+
