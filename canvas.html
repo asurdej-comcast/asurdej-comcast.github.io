@@ -23,7 +23,7 @@ function changeColor() {
     ctx.fillStyle = colors[colorIdx];
     ctx.fillRect(0,0,c.width, c.height);
     ++colorIdx;
-    setTimeout(changeColor, 3000);
+    setTimeout(changeColor, 1000);
   }, 1000);
 }
 
