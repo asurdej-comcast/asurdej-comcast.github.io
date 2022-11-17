@@ -10,10 +10,11 @@ var c = document.getElementById("myCanvas");
 var ctx = c.getContext("2d");
 console.log("canvas size: " + c.width + "x" + c.height + "[px]");
 
-var colors = ["red", "lightgreen"];
+var colors = ["yellow", "lightgreen"];
 var colorIdx = 0;
 
-var sizes = [ "1200", "1600" ];
+var sizesW = [ "500", "720" ];
+var sizesH = [ "720", "500" ];
 var sizesIdx = 0;
 
 changeColor();
@@ -33,7 +34,8 @@ function changeColor() {
 }
 
 function resizeCanvas() {
-  c.width = sizes[sizesIdx];
+  c.width = sizesW[sizesIdx];
+  c.height = sizesH[sizesIdx];
   sizesIdx = (sizesIdx + 1) % 2;
 }
 
