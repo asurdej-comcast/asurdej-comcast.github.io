@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <script>
+        function init() {
+          var da = new Date();
+          document.getElementById("date").innerHTML += da.toString();
+          document.getElementById("timezone").innerHTML += da.getTimezoneOffset();
+          document.getElementById("test").innerHTML += da.toLocaleTimeString('en-us', { hour: 'numeric', minute: '2-digit', timeZoneName: 'short' });
+        }
+        </script>
+    </head>
+    <body onload="init()">
+        <div id="date">Date: </div>
+        <div id="timezone">Timezone offset: </div>
+        <div id="test">Locale date: </div>
+    </body>
+</html>
