@@ -4,5 +4,9 @@
 
  // Retrieve the Image in Blob Format
  fetch(webpdata).then(response => response.blob()).then((blob) => {
-  image = createImageBitmap(blob);
- });
+  image = createImageBitmap(blob).then(() => {
+    console.log("Loaded");
+  }, () => {
+    console.log("Failed");
+  });
+});
