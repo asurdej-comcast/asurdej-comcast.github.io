@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<head>
+<script src="../lib/params.js"></script>
+<script type="text/javascript">
+
+var maxT = g_params["maxt"]
+if (maxT.isNan()) {
+  maxT = 50;
+}
+
+function test() {
+    var worker = new Worker('image.js');
+    setTimeout(()=>{ worker.terminate(); }, Math.floor(Math.random() * maxT) + 1);
+}
+
+
+ function load() {
+   console.log("START");
+   setInterval(test, 200);
+ }
+
+</script>
+</head>
+<body onload="load()" bgcolor="green">
+</body>
+</html>
