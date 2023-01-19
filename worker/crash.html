@@ -17,7 +17,11 @@ function test() {
 
  function load() {
    console.log("START");
-   setInterval(test, 200);
+   var t = g_params["step"];
+   if (t.isNan()) {
+     t = 500;
+   }
+   setInterval(test, t);
  }
 
 </script>
