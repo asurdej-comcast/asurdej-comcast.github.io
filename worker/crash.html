@@ -5,7 +5,7 @@
 <script type="text/javascript">
 
 var maxT = g_params["maxt"]
-if (maxT.isNan()) {
+if (isNaN(maxT)) {
   maxT = 50;
 }
 
@@ -18,7 +18,7 @@ function test() {
  function load() {
    console.log("START");
    var t = g_params["step"];
-   if (t.isNan()) {
+   if (isNaN(t)) {
      t = 500;
    }
    setInterval(test, t);
