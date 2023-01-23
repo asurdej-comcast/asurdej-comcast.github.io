@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+<script src="../lib/params.js"></script>
+<script>
+
+function test() {
+  var vid = document.getElementById("video");
+  vid.play();
+  vid.currentTime = Math.random() * 7.0;
+  setTimeout(()=>{ vid.pause(); }, Math.floor(Math.random() * 30));
+}
+
+function init() {
+  var url = g_params["url"];
+  if (!url) {
+    url = "../med/mov_bbb.mp4";
+  }
+
+  console.log("url: " + url);
+  var vid = document.getElementById("video");
+  vid.src = url;
+  vid.play(1.0);
+
+  setInterval(()=>{
+    test();
+  }, 2000);
+}
+</script>
+</head>
+<body onload="init()" bgcolor="#e8f8f5">
+<button onclick="init()">Play video</button>
+<video id="video" controls width="640" height="320" loop></video>
+
+</body>
+</html>
