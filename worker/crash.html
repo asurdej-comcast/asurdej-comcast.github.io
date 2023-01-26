@@ -11,11 +11,8 @@ if (isNaN(maxT)) {
 
 function test() {
     var worker = new Worker('image.js');
-    console.log("Worker started");
     setTimeout(()=>{
-      console.log("Killing worker");
       worker.terminate();
-      console.log("Worker killed");
     }, Math.floor(Math.random() * maxT) + 1);
 }
 
