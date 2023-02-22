@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<script src="params.js"></script>
+<script src="webaudio.js"></script>
+<script src="speech.js"></script>
+<script src="checkAndRun.js"></script>
+<script>
+
+function initVideo() {
+  var url = g_params["mediaurl"];
+  if (!url) {
+    url = "mov_bbb.mp4";
+  }
+
+  console.log("url: " + url);
+  var vid = document.getElementById("video");
+  vid.src = url;
+  vid.play(1.0);
+}
+
+var bid = 0;
+function navigateButton() {
+  bid = (bid + 1) % 3;
+  document.getElementById("vgb" + bid).focus();
+  setTimeout(navigateButton, 5000);
+}
+
+function init() {
+  checkAndRun("webaudio", playFromUrlParam);
+  checkAndRun("speech", speak, "Speech synthsis test. Speech synthsis test. Speech synthsis test. Speech synthsis test finished");
+  checkAndRun("media", initVideo);
+  checkAndRun("vg", navigateButton);
+}
+</script>
+</head>
+  <body onload="init()" bgColor="Lavender">
+    <button onclick="init()">Start test</button>
+    <video width="640" height="320" controls id="video"></video>
+    <button aria-label="Voice Guidance test button 1" id="vgb0">VG Test button 1</button>
+    <button aria-label="Voice Guidance test button 2" id="vgb1">VG Test button 1</button>
+    <button aria-label="Voice Guidance test button 3" id="vgb2">VG Test button 1</button>
+  </body>
+</html>
