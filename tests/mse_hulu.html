@@ -41,7 +41,7 @@ function removeFromSB() {
   }
   log("Samples removal start <br>");
   sourceBufferVid.remove(0, 9999999);
-  log("Sampes removed !!!");
+  log("SourceBuffer.remove() called");
 }
 
 function setupMSE() {
@@ -77,10 +77,10 @@ function setupMSE() {
               log("SourceBuffer update end !!!! <br>");
               log("Buffered: [" + sourceBufferVid.buffered.start(0) + ", " + sourceBufferVid.buffered.end(0) + "]");
               log("READY TO TEST in 10 sec");
-              log("No blinking means WebProcess hang");
+              log("No blinking means WebProcess hang <br>");
 
-              sourceBufferVid.onupdatestart = undefined;
-              sourceBufferVid.onupdateend = undefined;
+              sourceBufferVid.onupdatestart = () => { log("Samples removal started <br>"); };
+              sourceBufferVid.onupdateend = () => { log("Samples removal finished !!! -> TEST OK <br>"); };
 
               setInterval(()=>{
                 color_idx = (color_idx + 1) % colors.length;
