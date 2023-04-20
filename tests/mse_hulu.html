@@ -35,7 +35,7 @@ function log(message) {
 }
 
 function removeFromSB() {
-  if (SourceBuffer.buffered.length < 1) {
+  if (sourceBufferVid.buffered.length < 1) {
     log("SourceBuffer not ready yet <br>");
     return;
   }
