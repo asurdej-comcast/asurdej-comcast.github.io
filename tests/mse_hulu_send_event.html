@@ -1,0 +1,108 @@
+<html>
+  <head>
+    <!-- <script src="https://code.jquery.com/jquery-1.12.4.js"></script> -->
+  </head>
+  <body bgColor="cyan">
+    <br><br><br>
+    <div style="position:relative;left:10px">
+      <table>
+        <tr>
+          <td valign="top">
+            <p>currentTime = ?</p>
+            <video width="480" controls>
+                Sorry, your browser doesn't support embedded videos.
+            </video>
+          </td>
+          <td id="log" style="font-size:10px">
+          </td>
+        </tr>
+      </table>
+    </div>
+    <script>
+
+
+var video = document.getElementsByTagName('video')[0];
+
+setTimeout(setupMSE, 1000);
+
+var color_idx = 0;
+var colors = ["green", "yellow"];
+
+var sourceBufferVid;
+function log(message) {
+    console.log(message);
+    document.getElementById('log').innerHTML = document.getElementById('log').innerHTML + message + "<br>";
+}
+
+function removeFromSB() {
+  if (sourceBufferVid.buffered.length < 1) {
+    log("SourceBuffer not ready yet <br>");
+    return;
+  }
+  log("Samples removal start <br>");
+  sourceBufferVid.remove(0, 9999999);
+  log("SourceBuffer.remove() called");
+}
+
+function setupMSE() {
+    var mediaSource = new MediaSource;
+    log("media source created: " + mediaSource.readyState + "<br>");
+    video.src = URL.createObjectURL(mediaSource);
+    log("media source attached: " + mediaSource.readyState + "<br>");
+
+    mediaSource.addEventListener('sourceopen', function(_) {
+        var mediaSource = this;
+        log("media source 'sourceopen', readyState: " + mediaSource.readyState + "<br>");
+        var mimeCodec = 'audio/mp4';
+        log("media source: " + mimeCodec + " supported: " + MediaSource.isTypeSupported(mimeCodec) + "<br>");
+        sourceBufferVid = mediaSource.addSourceBuffer(mimeCodec);
+        
+        log("media source added source buffer, readyState: " + mediaSource.readyState + "<br>");
+
+        //var sourceBufferAud = mediaSource.addSourceBuffer('audio/mp4');
+
+        log("fetching asset...<br>");
+        fetchAB('https://asurdej-comcast.github.io/media/hulu_audio_short.mp4', function(buf) {
+            log("fetching asset done (" + buf.byteLength + " bytes ) <br>");
+            log("Audio data appended to SourceBuffer <br>")
+            sourceBufferVid.appendBuffer(buf);
+
+            sourceBufferVid.onupdatestart = () => {
+              log("SourceBuffer update start. This will take couple of minutes <br>");
+              log("Bacground will blink green-yellow once append completed -> be patient");
+            }
+
+
+            sourceBufferVid.onupdateend = () => {
+              log("SourceBuffer update end !!!! <br>");
+              log("Buffered: [" + sourceBufferVid.buffered.start(0) + ", " + sourceBufferVid.buffered.end(0) + "]");
+              log("READY TO TEST in 10 sec");
+              log("No blinking means WebProcess hang <br>");
+
+              sourceBufferVid.onupdatestart = () => { log("Samples removal started <br>"); };
+              sourceBufferVid.onupdateend = () => { log("Samples removal finished !!! -> TEST OK <br>"); };
+
+              setInterval(()=>{
+                color_idx = (color_idx + 1) % colors.length;
+                document.body.bgColor = colors[color_idx];
+              }, 500);
+
+              setTimeout(removeFromSB, 10000);
+            }
+        });
+    });
+}
+
+      function fetchAB(url, cb) {
+          console.log(url);
+          var xhr = new XMLHttpRequest;
+          xhr.open('get', url);
+          xhr.responseType = 'arraybuffer';
+          xhr.onload = function () {
+              cb(xhr.response);
+          };
+          xhr.send();
+      }
+    </script>
+  </body>
+</html>
