@@ -79,6 +79,9 @@ function setupMSE() {
               log("READY TO TEST in 10 sec");
               log("No blinking means WebProcess hang");
 
+              sourceBufferVid.onupdatestart = undefined;
+              sourceBufferVid.onupdateend = undefined;
+
               setInterval(()=>{
                 color_idx = (color_idx + 1) % colors.length;
                 document.body.bgColor = colors[color_idx];
