@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html>
+<head>
+<script type="text/javascript">
+
+ var ival;
+ var value = 0;
+
+ function load() {
+    ival = setInterval(()=>{ diva.style.transform = "translateX("+value+"rem)"; value += 0.5; }, 100);
+
+ }
+
+
+</script>
+</head>
+<body onload="load()">
+    <div id="diva" style="width: 60px; height: 60px; background-color: skyblue; transition: transform .1s linear">TextExample</div>
+</body>
+</html>
