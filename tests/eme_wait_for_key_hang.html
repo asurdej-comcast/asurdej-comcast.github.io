@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html>
+<head>
+<script src="params.js"></script>
+<script type="text/javascript">
+
+const video = document.createElement('video');
+//const hasVideo = undefined;
+const hasVideo = "../media/hulu_video_short.mp4";
+//const hasAudio = undefined;
+//const hasAudio = "http://192.168.1.103/hulu_audio.mp4";
+
+const mimeCodec = 'video/mp4; codecs="avc1.64001f"';
+
+const mediaSource = new MediaSource();
+video.src = URL.createObjectURL(mediaSource);
+
+var sourceBuffer;
+
+mediaSource.addEventListener('sourceopen', async () => {
+  console.log("Source open");
+  
+  sourceBuffer = mediaSource.addSourceBuffer(mimeCodec);
+
+  // Load video segments and append them to the source buffer as they become available
+  // For example, using fetch to load segments
+  if (hasVideo) {
+    console.log("Fetch video data");
+    fetch(hasVideo).then(response => {
+      console.log("Got video data");
+      return response.arrayBuffer();
+    }).then(segmentData => {
+      console.log("Append Source buffer");
+      sourceBuffer.appendBuffer(segmentData);
+    });
+  }
+
+  // if (hasAudio) {
+  //   fetch(hasAudio).then(response => {
+  //     return response.arrayBuffer();
+  //   }).then(segmentData => {
+  //     sourceBuffer.appendBuffer(segmentData);
+  //   });
+  // }
+
+  // Listen for the 'encrypted' event to receive the encrypted media data and pass it to the MediaKeySession object
+  video.addEventListener('encrypted', async (event) => {
+
+    console.log("Got encrypted event for data type: " + event.initDataType);
+    console.log("Got encrypted event");
+
+    const initDataType = 'cenc';
+    const initDataTypeBinary = new Uint8Array([0x63, 0x65, 0x6e, 0x63]); // 'cenc' in binary
+    //const initData = new Uint8Array(/* encrypted content key */);
+
+
+    // Request a MediaKeySystemAccess object for the Widevine key system
+    const keySystemAccess = await navigator.requestMediaKeySystemAccess('com.widevine.alpha', [{
+      initDataTypes: [initDataType],
+      videoCapabilities: [{
+        contentType: 'video/mp4; codecs="avc1.64001f"'
+      }]
+    }]);
+
+    // Create a MediaKeys object and attach it to the video element
+    const mediaKeys = await keySystemAccess.createMediaKeys();
+    video.setMediaKeys(mediaKeys);
+    const keySession = mediaKeys.createSession();
+
+    // // Set up event listeners for the key session
+    // keySession.addEventListener('message', async (event) => {
+    //   console.log("Sessoin message event");
+    //   await keySession.update(event.message);
+    // });
+
+    console.log("Generate license request");
+    // Generate a request to obtain the license
+   // keySession.generateRequest(initDataType, event.initData);
+    // if (event.initDataType === initDataType) {
+    //   const encryptedData = new Uint8Array(event.initData.byteLength + event.encryptedData.byteLength);
+    //   encryptedData.set(new Uint8Array(event.initData), 0);
+    //   encryptedData.set(new Uint8Array(event.encryptedData), event.initData.byteLength);
+    //   await keySession.update(encryptedData);
+    // }
+  });
+
+  // Listen for the 'updateend' event to detect when the source buffer is ready to receive more data
+  sourceBuffer.addEventListener('updateend', () => {
+    console.log("update ended !!!");
+    if (!sourceBuffer.updating && mediaSource.readyState === 'open') {
+      // Load more video segments and append them to the source buffer
+    }
+  });
+});
+
+// Play the video
+video.play();
+
+function load() {
+  console.log("Load");
+  document.body.appendChild(video);
+  video.width = 720;
+  video.height = 1280;
+
+}
+
+
+// // TEST !!!
+setTimeout(()=>{
+  console.log("Replace video url");
+  video.src = "../media/tubi.mp4"
+  video.play(1);
+}, 2000);
+
+</script>
+</head>
+<body onload="load()">
+</body>
+</html>
