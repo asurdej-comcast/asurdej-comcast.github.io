@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+
+        #videoContainer{
+            position: absolute;
+            left: 0px;
+            top: 0px;
+            width: 50%;
+            height: 100%;
+            background-color: #000000;
+        }
+
+        #html5Video{
+            width: 100%;
+            height: 100%;
+        }
+
+        #logs{
+            position: absolute;
+            left: 50%;
+            width: 50%;
+            background-color: cyan;
+            font-size: x-small;
+        }
+
+    </style>
+    <title>HTML5 Video Test Application</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=1280">
+</head>
+<body class="viewport">
+<div id="videoContainer">
+    <video id="html5Video" controls></video>
+</div>
+<div id="logs">
+</div>
+<div id="container"></div>
+
+<script>
+  var advertUrls = [
+    'https://ar.prd.content.itv.com/media/ITVXIDNT001004-NWKT5c_CTV01.SD.1800.mp4',
+    'https://ar.prd.content.itv.com/media/itvxident01405-GnGH58_CTV01.SD.1800.mp4',
+    'https://ar.prd.content.itv.com/media/TTBUTWI011030-f8XsSL_CTV01.SD.1800.mp4',
+    'https://toots-a.akamaihd.net/priority/202103/SPOMDSE10910_Seat_Cupra_AdamEveDDBLon_10_ccfe_1800.mp4'
+  ];
+  var html5Video = document.getElementById("html5Video");
+  var videoContainer = document.getElementById("videoContainer");
+  var logDiv = document.getElementById("logs");
+  logDiv.innerHTML = "Logs:";
+
+ function log(msg) {
+   console.log(msg);
+   logDiv.innerHTML += "<br>" + msg;
+ }
+
+  html5Video.addEventListener('ended', function () {
+    log('Video ended. video element current time: ' + html5Video.currentTime);
+    if (advertUrls.length > 0) {
+      html5Video.src = advertUrls.shift();
+      html5Video.load();
+      log('Loading next video');
+    }
+  });
+
+  html5Video.addEventListener('canplay', function () {
+    log('Video can play. video element duration: '+ html5Video.duration);
+    html5Video.play();
+  });
+
+  html5Video.addEventListener('timeupdate', function () {
+    log('Video timeupdate. video element current time: '+ html5Video.currentTime);
+  });
+
+  html5Video.src = advertUrls.shift();
+  html5Video.load();
+</script>
+
+</body>
+</html>
