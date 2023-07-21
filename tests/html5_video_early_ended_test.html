@@ -20,9 +20,17 @@
         #logs{
             position: absolute;
             left: 50%;
-            width: 50%;
+            width: 25%;
             background-color: cyan;
-            font-size: x-small;
+            font-size: small;
+        }
+    
+        #logsTime{
+            position: absolute;
+            left: 75%;
+            width: 25%;
+            background-color: cyan;
+            font-size: xx-small;
         }
 
     </style>
@@ -34,8 +42,8 @@
 <div id="videoContainer">
     <video id="html5Video" controls></video>
 </div>
-<div id="logs">
-</div>
+<div id="logs"></div>
+<div id="logsTime"></div>
 <div id="container"></div>
 
 <script>
@@ -48,11 +56,16 @@
   var html5Video = document.getElementById("html5Video");
   var videoContainer = document.getElementById("videoContainer");
   var logDiv = document.getElementById("logs");
+  var logDivT = document.getElementById("logsTime");
   logDiv.innerHTML = "Logs:";
 
  function log(msg) {
    console.log(msg);
    logDiv.innerHTML += "<br>" + msg;
+ }
+ function logTime(msg) {
+   console.log(msg);
+   logDivT.innerHTML += "<br>" + msg;
  }
 
   html5Video.addEventListener('ended', function () {
@@ -70,7 +83,7 @@
   });
 
   html5Video.addEventListener('timeupdate', function () {
-    log('Video timeupdate. video element current time: '+ html5Video.currentTime);
+    logTime('Video timeupdate. video element current time: '+ html5Video.currentTime);
   });
 
   html5Video.src = advertUrls.shift();
