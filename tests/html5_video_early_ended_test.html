@@ -65,7 +65,7 @@
  }
  function logTime(msg) {
    console.log(msg);
-   logDivT.innerHTML += "<br>" + msg;
+   logDivT.innerHTML = msg + "<br>" + logDivT.innerHTML;
  }
 
   html5Video.addEventListener('ended', function () {
