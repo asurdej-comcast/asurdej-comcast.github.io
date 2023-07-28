@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <script src="../lib/utils.js"></script>
+  <script src="../lib/mse.js"></script>
+</head>
+<body>
+  <video id="video" controls></video>
+  <script type="text/javascript">
+    checkTestCaseAPI();
+
+    var video = document.getElementById("video");
+
+    videoUrl = _params["url"];
+    if (!videoUrl)
+      videoUrl = "../media/yt_car_video.mp4";
+    console.log("MSE video url: " + videoUrl);
+
+    prepareMSE(video, videoUrl, () => {
+      video.ontimeupdate = () => {
+        if (video.currentTime > 1) {
+          resetFailTimeout();
+          video.ontimeupdate = null;
+          startTesting();
+        }
+      }
+      failTimeout(5, "Video did not reach 1s currentTime in 5 sec");
+      video.play();
+    });
+
+    function startTesting() {
+      video.onpause = () => {
+        console.log("video paused");
+        resetFailTimeout();
+        video.onpause = null;
+        setTimeout(() => {
+          console.log("Trying to resume playback");
+          video.ontimeupdate = () => {
+            if (video.currentTime > 5) {
+              video.ontimeupdate = null;
+              resetFailTimeout();
+              reportPass("Video reached 5s position");
+              video.pause();
+            }
+          };
+          failTimeout(10, "Failed to resume video after pause");
+          video.playbackRate = 1;
+          video.play();
+        }, 1000);
+      };
+      failTimeout(5, "pause video failed");
+      video.playbackRate = 0;
+      video.pause();
+    }
+  </script>
+</body>
+</html>
