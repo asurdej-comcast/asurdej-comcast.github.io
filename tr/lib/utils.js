@@ -28,6 +28,8 @@ function reportResult(success, msg) {
   console.log("TEST " + (success ? "PASSED" : "FAILED") + " : " + msg);
   if (_useTestingAPIs) {
     window.testCase.reportResult(success, msg); 
+  } else {
+    document.body.bgColor = success ? "green" : "red";
   }
 }
 
