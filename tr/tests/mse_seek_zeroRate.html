@@ -18,7 +18,7 @@
 
     prepareMSE(video, videoUrl, () => {
       video.ontimeupdate = () => {
-        if (video.currentTime > 1) {
+        if (video.currentTime > 3) {
           resetFailTimeout();
           video.ontimeupdate = null;
           startTesting();
