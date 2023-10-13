@@ -31,7 +31,7 @@
     function startTesting() {
       console.log("START TEST");
       video.currentTime = 5;
-      setTimeout(()=>{video.playbackRate = 0;}, 5);
+      setTimeout(()=>{video.pause();}, 5);
       setTimeout(()=>{
         var vidCurrTime = video.currentTime;
         if (vidCurrTime < 6) {
