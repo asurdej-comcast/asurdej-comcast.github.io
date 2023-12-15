@@ -183,7 +183,11 @@
         }
 
         function runTest(id, auto = false) {
-            console.log("Start test case ", id);
+            console.log("Start test case: ", id);
+            if (!(typeof id === 'number')) {
+                console.log("invalid id");
+                return;
+            }
             if (running) {
                 console.log("Another test case in progress");
                 return;
