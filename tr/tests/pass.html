@@ -6,13 +6,10 @@
 
 function load() {
     // from utils.js
-    if (!checkTestCaseAPI()) {
-        return;
-    }
     setTimeout(()=>{
-	// from utils.js
-	reportPass("Test passed successfully");
-    }, 1000);
+	    //body.bgcolor = "green";
+	    window.testCase.reportResult(true, "asdfasdf");
+    }, 3000);
 }
 
 </script>

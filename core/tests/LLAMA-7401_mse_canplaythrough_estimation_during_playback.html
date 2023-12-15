@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <script src="../lib/utils.js"></script>
+  <script src="../lib/mse.js"></script>
+  <script type="text/javascript">
+    function log(message) {
+          console.log(message);
+          document.getElementById('console').innerHTML += message + "<br>";
+    }
+
+    async function runTestCase() {
+        setTimeout(() => {
+	    reportFail("Test case timed out");
+        }, 25000);
+
+        var mediaElement = document.getElementById("video");
+        var mediaSource = null;
+        var audioSourceBuffer = null;
+        var videoSourceBuffer = null;
+
+        const audioMimeType = "audio/mp4";
+        const videoMimeType = "video/mp4";
+        const audioAssetUrl = "../media/yt_car_audio_1MB_trunc.mp4";
+        const videoAssetUrl = "../media/yt_car_video.mp4";
+
+        mediaElement.addEventListener("canplay", () => { log("got 'canplay' event"); });
+        mediaElement.addEventListener("canplaythrough", () => { log("got 'canplaythrough' event"); });
+
+        mediaSource = await asyncPrepareMediaSource(mediaElement, duration=60.0, log);
+        audioSourceBuffer = await asyncPrepareSourceBuffer(mediaSource, audioMimeType, null, log);
+        videoSourceBuffer = await asyncPrepareSourceBuffer(mediaSource, videoMimeType, null, log);
+        var audioData = await asyncFetchAB(audioAssetUrl, log);
+        var videoData = await asyncFetchAB(videoAssetUrl, log);
+        await asyncAppendDataToSourceBuffer(mediaSource, audioSourceBuffer, audioData.slice(0, audioData.byteLength/6), log);
+        await asyncAppendDataToSourceBuffer(mediaSource, videoSourceBuffer, videoData.slice(0, videoData.byteLength/3), log);
+
+        log("waiting for 'canplaythrough' event...");
+        await new Promise((resolve) => { mediaElement.oncanplaythrough = () => { resolve(); } });
+
+        log("playing...");
+        video.play();
+        log("waiting for 'waiting' event...");
+        await new Promise((resolve) => { mediaElement.onwaiting = () => { resolve(); } });
+
+        // mediaElement.currentTime += 1.0;
+        log("adding more data...");
+        await asyncAppendDataToSourceBuffer(mediaSource, audioSourceBuffer, audioData.slice(audioData.byteLength/6), log);
+
+        log("waiting for 'canplaythrough' event...");
+        await new Promise((resolve) => { mediaElement.oncanplaythrough = () => { resolve(); } });
+
+        log("waiting for 'currentTime' to surpass 13...");
+        await new Promise((resolve) => { mediaElement.ontimeupdate = () => { if (mediaElement.currentTime > 13.0) { resolve(); } } });
+
+        log("mediaElement.currentTime is " + mediaElement.currentTime + " now");
+        reportPass();
+    }
+  </script>
+</head>
+<body onload="runTestCase()" bgcolor="gray">
+  <video id="video" style="float: right;" controls></video>
+  <div id="console" style="font-size:10px"></div>
+</body>
+</html>

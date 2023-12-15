@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <script src="../lib/utils.js"></script>
+  <script type="text/javascript">
+    function runTestCase() {
+        setTimeout(() => {
+	    reportFail("Test case timed out");
+        }, 5000);
+
+        if (!window.speechSynthesis) {
+            reportFail("Browser doesn't support speech synthesis");
+        } else {
+            reportPass("Browser supports speech synthesis");
+        }
+    }
+  </script>
+</head>
+<body onload="runTestCase()" bgcolor="gray">
+</body>
+</html>

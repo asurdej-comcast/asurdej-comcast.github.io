@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<!--
+Ticket: RDK-45036
+Test: Verifies that when the local storage is corrupted, items still in memory are written again to the
+      database after a recovery mechanism re-creates the database (although empty)
+
+Guidance:
+The local storage database location for a given site is device dependent. On Llama, the database can be
+accessed from the host for an app (running inside a container) via following path, where <pid of web process>
+is the pid of the WPEWebProcess and <url> is the url to this test html file with special characters
+replaced by underscores:
+
+/proc/<pid of web process>/root/home/private/.local/share/data/Comcast/NativeXREReceiver/<url>.localstorage
+
+For example, if the WPEWebProcess has pid 3215 and we opened the url http://10.42.0.1:8000, the path is:
+
+/proc/3215/root/home/private/.local/share/data/Comcast/NativeXREReceiver/http_10.42.0.1_8000.localstorage
+
+On other devices, this path needs to be adjusted accordingly.
+
+To ensure a clean state, we need to remove the database file first before proceeding with the tests. This
+can be done by launching the web process with the url to this test html file and then running the
+following commands on the device:
+
+- pstree -p | grep WPEWebProcess
+- rm /proc/<pid of web process>/root/home/private/.local/share/data/Comcast/NativeXREReceiver/<url>.localstorage
+- kill <pid of web process>
+
+This will delete the database and kill the browser so no items will be written before it exits.
+
+Now, launch the url again and follow the steps. When reaching the step to corrupt the database, use the
+following command
+- echo "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX" | dd of=/proc/<pid of web process/root/home/private/.local/share/data/Comcast/NativeXREReceiver/<url>.localstorage lbs=1 seek=4096
+
+Proceed with the test following the guidance on screen.
+
+Note: Database contents can be inspected with the following command:
+- hexdump -C /proc/<pid of web process>/root/home/private/.local/share/data/Comcast/NativeXREReceiver/<url>.localstorage
+
+How to run in standalone mode:
+- On the same folder where this file resides, run "python3 -m http.server 8000" to launch the http server
+- On the box, open the url "http://<server ip>:8000/<name of this file>"
+   - Replace "<server ip>" with the ip address of the machine where you launched the command above, and
+     "<name of this file>" with the name of this html file
+-->
+
+<html>
+
+<head>
+<title>Test of localStorage corruption</title>
+</head>
+
+<body bgcolor="white">
+<h1>Test of localStorage corruption</h1>
+
+<h2>See steps and results below:</h2>
+
+<div id="test_status"></div>
+
+<script>
+var iterationsData;
+var test_status = document.getElementById('test_status');
+
+(function () {
+
+if (!('localStorage' in window)) {
+    test_status.innerHTML = 'Your browser has no localStorage support.';
+        console.log("DBG: " + test_status.innerHTML);
+    return;
+}
+
+function test() {
+    var state;
+    var pattern1 = "1234567890-1234567890-1234567890-1234567890";
+    var pattern2 = "0987654321-0987654321-0987654321-0987654321";
+
+    state = read("_state")
+
+    if (state == undefined) {
+        console.log("TEST: Initializing local storage");
+
+        clear(); // Ensure local storage is in a well defined state
+
+        write("data1", pattern1);
+        write("_state", 1);
+
+        test_status.innerHTML = "If you were in the middle of the test sequence and see this message, the test has failed. Otherwise please exit browser and open this page again";
+    } else if (state == 1) {
+        console.log("TEST: Verifying data in local storage is correct");
+
+        data = read("data1");
+        if (data !== pattern1) {
+            console.log("TEST: FAILED. Data is not correct");
+
+            test_status.innerHTML = "Test failed";
+
+            resetState();
+            return;
+        }
+
+        let counter = 60;
+        timer = setInterval(() => {
+                test_status.innerHTML = "Please manually corrupt local storage now. Test proceeds in " + counter + " seconds";
+                counter--;
+                if (counter == 0) {
+                    clearInterval(timer);
+
+                    write("data2", pattern2);
+                    write("_state", 2);
+                    test_status.innerHTML = "Please exit browser and open this page again";
+                }
+        },1000)
+    } else if (state == 2) {
+        console.log("TEST: Verifying data in local storage is correct after corruption");
+        data1 = read("data1");
+        data2 = read("data2");
+        if ((data1 !== pattern1) || (data2 !== pattern2)) {
+            console.log("TEST: FAILED. Data is not correct after corruption");
+            test_status.innerHTML = "Test failed";
+        } else {
+            console.log("TEST: PASSED");
+            test_status.innerHTML = "Test passed";
+        }
+        resetState();
+    } else {
+        console.log("TEST: Inconsistent state. Clearing local storage.");
+        test_status.innerHTML = "If you were in the middle of the test sequence and see this message, the test has failed. Otherwise please exit browser and open this page again to start the test";
+        clear();
+    }
+}
+
+function resetState() {
+    localStorage.removeItem("_state");
+}
+
+function clear() {
+    localStorage.clear();
+}
+
+function read(key) {
+    try {
+        return localStorage[key];
+    } catch (e) {
+        console.log("DBG: Exception reading " + key + " = " + e)
+        return undefined;
+    }
+}
+
+function write(key,value) {
+    try {
+        localStorage[key] = value;
+        return true;
+    } catch (e) {
+        console.log("DBG: Exception writing " + key + " = " + e)
+        return false;
+    }
+}
+
+test();
+
+})();
+</script>
+
+</body>
+</html>

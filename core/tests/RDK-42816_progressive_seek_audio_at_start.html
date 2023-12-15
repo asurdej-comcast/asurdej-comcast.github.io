@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+<head>
+<script src="../lib/utils.js"></script>
+<script type="text/javascript">
+
+// Test that performs a seek right at the start before the pipeline had the change to start the actual 
+// playback. The playback position returned shall not be reset to zero during this process
+
+var audio;                  // player instance
+var targetSeekTime = 500.0; // seconds
+var seekStartDelay = 5000;  // mili-seconds
+var seekTimeout = 6000;     // mili-seconds
+
+function load() {
+    var audioUrl = _params["url"];
+    if (!audioUrl) {
+        // Asset from https://cpetestutility.stb.r53.xcal.tv/CPETool/media/
+        audioUrl = "../media/Symphony No.6 (1st movement).mp3";
+    }
+    console.log("audioUrl = " + audioUrl);
+
+    audio = document.getElementById("audio");
+    audio.src = audioUrl;
+    
+    audio.play();
+    
+    audio.currentTime = targetSeekTime;
+
+    checkCurrentTime();
+
+    // Trigger periodic time check. Use very small delay as the position may remain invalid only
+    // for a very short period
+    setInterval(() => {
+        checkCurrentTime();
+        }, "1");
+}
+
+function checkCurrentTime() {
+    time = audio.currentTime;
+
+    if (time == 0) {
+        reportFail("Current time: " + time + " seek time: " + targetSeekTime);
+    } else if (time > targetSeekTime) {
+        reportPass("Current time: " + time + " seek time: " + targetSeekTime);
+    } else {
+        // Waiting for playback to progress
+    }
+}
+
+</script>
+</head>
+<body onload="load()">
+    <audio id="audio" controls></audio>
+</body>
+</html>

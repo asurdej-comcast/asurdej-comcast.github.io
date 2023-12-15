@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html>
+<head>
+<script src="../lib/utils.js"></script>
+<script type="text/javascript">
+
+// Test that performs a seek operations during progressive playback of an audio asset while it is in the
+// paused state and verifies that the currentTime is never invalid during this operation
+
+var audio;                  // player instance
+var targetPauseTime = 3.0;  // seconds
+var targetSeekTime = 400.0; // seconds
+var seekTimeout = 6000;     // mili-seconds
+
+function load() {
+    var audioUrl = _params["url"];
+    if (!audioUrl) {
+        // Asset from https://cpetestutility.stb.r53.xcal.tv/CPETool/media/
+        audioUrl = "../media/Symphony No.6 (1st movement).mp3";
+    }
+    console.log("audioUrl = " + audioUrl);
+
+    audio = document.getElementById("audio");
+    audio.src = audioUrl;
+
+    audio.play();
+
+    seekTriggered = false;
+
+    audio.ontimeupdate = (event) => {
+        // Trigger pause when we reach a reference time
+        if (audio.currentTime < targetPauseTime)
+            return;
+
+        audio.ontimeupdate = null;
+        audio.pause();
+
+        checkCurrentTime();
+
+        // Trigger periodic time check. Use very small delay as the position may remain invalid only
+        // for a very short period
+        setInterval(() => {
+            checkCurrentTime();
+        }, "1");
+
+        // Trigger seek after few mili seconds of being in the paused state
+        setTimeout(() => {
+            if (!audio.paused)
+                reportFail("Not in paused state before seek");
+
+            audio.currentTime = targetSeekTime;
+            seekTriggered = true;
+
+            checkCurrentTime();
+
+            // A seek should not take forever. Set a timeout
+            setTimeout(() => {
+                reportFail("Timeout waiting for seek to complete");
+            }, seekTimeout);
+        }, 500);
+
+        // Trigger playback again after few mili seconds after having requested the seek
+        setTimeout(() => {
+            if (!audio.paused)
+                reportFail("Not in paused state before resuming playback");
+
+            audio.play();
+
+            checkCurrentTime();
+        }, 1000);
+    };
+}
+
+function checkCurrentTime() {
+    time = audio.currentTime;
+
+    if (time < targetPauseTime) {
+        reportFail("Current time: " + time + " pause time: " + targetPauseTime);
+    } else if (seekTriggered && (time < targetSeekTime)) {
+        reportFail("Current time: " + time + " seek time: " + targetSeekTime);
+    } else if (time > targetSeekTime) {
+        reportPass("Current time: " + time + " seek time: " + targetSeekTime);
+    } else {
+        // Waiting for playback to progress
+    }
+}
+
+</script>
+</head>
+<body onload="load()">
+    <audio id="audio" controls></audio>
+</body>
+</html>

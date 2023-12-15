@@ -1,0 +1,71 @@
+<html>
+  <head>
+    <script src="https://code.jquery.com/jquery-1.12.4.js"></script>
+    <style>
+      .scrollBox { width: 400px; height: 300px; border: 1px solid }
+      .bigbox { width: 380px; height: 300px; border: 1px solid }
+      .box { width: 380px; height: 150px; border: 1px solid }
+    </style>
+  </head>
+  <body bgcolor="#ff9900">
+    <br><br><br>
+    <div style="position:relative;left:100px">
+      <h1>Manual tests</h1>
+      <ul>
+        <li style="background-color:gray">RDK-36889-mse_audio_flush_test.html</li>
+        <li>RDK-42824_svg_fediffuselighting.html</li>
+        <li>RDK-45036_localstorage_corruption_test.html</li>
+        <!-- Add another list item with the test page above this line without including the style attribute -->
+      </ul>
+    </div>
+    <script>
+      var currentItemIndex = 0;
+      var loading = false;
+      $(document).ready(function() {
+          window.wpeQuery({
+              request: 'firebolt.launchArgs',
+              onSuccess: function (encodedArgs) {
+                  var parsedJson = JSON.parse(atob(encodedArgs));
+                  if (parsedJson.url) {
+                      $("div").text("Loading '" + parsedJson.url + "'...");
+                      window.location.href = parsedJson.url;
+                      loading = true;
+                  }
+              },
+              onFailure: null
+          });
+      });
+      window.addEventListener("keydown", (event) => {
+          if (event.defaultPrevented || loading) {
+              return;
+          }
+          let handled = false;
+          switch (event.code) {
+          case "Enter":
+              loading = true;
+              var urlToLoad = $("ul")[0].children[currentItemIndex].textContent;
+              $("div").text("Loading '" + urlToLoad + "'...");
+              window.location.href = urlToLoad;
+              handled = true;
+              break;
+          case "ArrowUp":
+              $("li").css("background-color", "");
+              currentItemIndex = currentItemIndex - 1 < 0 ? $("ul")[0].children.length - 1 : currentItemIndex - 1;
+              $("ul")[0].children[currentItemIndex].style.backgroundColor = "gray";
+              handled = true;
+              break;
+          case "ArrowDown":
+              $("li").css("background-color", "");
+              currentItemIndex = (currentItemIndex + 1) % $("ul")[0].children.length;
+              $("ul")[0].children[currentItemIndex].style.backgroundColor = "gray";
+              handled = true;
+              break;
+          }
+          if (handled) {
+              // Suppress "double action" if event handled
+              event.preventDefault();
+          }
+      }, true);
+    </script>
+  </body>
+</html>

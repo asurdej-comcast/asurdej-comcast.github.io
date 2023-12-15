@@ -10,6 +10,8 @@
  * 03/08/11 Modified version for CanvasMark usage
  */
 
+console.log("AAAAAAAAAAAAA execute canvasmark !!!!!!!!");
+
 var KEY = { SHIFT:16, CTRL:17, ESC:27, RIGHT:39, UP:38, LEFT:37, DOWN:40, SPACE:32,
             A:65, D:68, E:69, G:71, L:76, P:80, R:82, S:83, W:87, Z:90, OPENBRACKET:219, CLOSEBRACKET:221 };
 var iOS = (navigator.userAgent.indexOf("iPhone;") != -1 ||
@@ -63,7 +65,7 @@ var GameHandler =
    benchmarkScores: [],
    
    FPSMS: 60,
-   FRAME_TIME_MAX: 1000/30,
+   FRAME_TIME_MAX: 1000/10,
    MAX_GLITCH_COUNT: 10,
    
    /**
@@ -77,7 +79,8 @@ var GameHandler =
     * Init function called once by your window.onload handler
     */
    init: function()
-   {
+   { 
+      console.log("init gamehandle r!!!!");
       this.canvas = document.getElementById('canvas');
       this.width = this.canvas.height;
       this.height = this.canvas.width;
@@ -133,6 +136,7 @@ var GameHandler =
  */
 if (typeof Game == "undefined" || !Game)
 {
+   console.log("Create new game");
    var Game = {};
 }
 
@@ -170,6 +174,7 @@ Game.worldToScreen = function worldToScreen(vector, world, radiusx, radiusy)
 {
    Game.Main = function()
    {
+      console.log("Main gaame func !!");
       var me = this;
       
       document.onkeydown = function(event)
@@ -316,6 +321,7 @@ Game.worldToScreen = function worldToScreen(vector, world, radiusx, radiusy)
 // requestAnimFrame shim
 window.requestAnimFrame = (function()
 {
+   console.log("request freame !");
    return  window.requestAnimationFrame       || 
            window.webkitRequestAnimationFrame || 
            window.oRequestAnimationFrame      || 
@@ -338,6 +344,7 @@ window.requestAnimFrame = (function()
 {
    Game.Scene = function(playable, interval)
    {
+      console.log("Create game scene");
       this.playable = playable;
       this.interval = interval;
    };
@@ -469,7 +476,7 @@ window.requestAnimFrame = (function()
 (function()
 {
    Game.Interval = function(label, intervalRenderer)
-   {
+   {  console.log("geme interval");
       this.label = label;
       this.intervalRenderer = intervalRenderer;
       this.framecounter = 0;
@@ -925,7 +932,7 @@ Feature.blurImage = new Image();
 {
    Feature.Test = function(benchmark, loader)
    {
-      loader.addImage(Feature.textureImage, "../canvask3d/images/texture5.png");
+      loader.addImage(Feature.textureImage, "./images/texture5.png");
       loader.addImage(Feature.blurImage, "./images/fruit.jpg");
 
       // add benchmark scenes
@@ -1406,13 +1413,13 @@ if (typeof Asteroids == "undefined" || !Asteroids)
    Asteroids.Test = function(benchmark, loader)
    {
       // get the image graphics loading
-      loader.addImage(g_backgroundImg, '../asteroids/images/bg3_1.jpg');
-      loader.addImage(g_playerImg, '../asteroids/images/player.png');
-      loader.addImage(g_asteroidImg1, '../asteroids/images/asteroid1.png');
-      loader.addImage(g_asteroidImg2, '../asteroids/images/asteroid2.png');
-      loader.addImage(g_asteroidImg3, '../asteroids/images/asteroid3.png');
-      loader.addImage(g_asteroidImg4, '../asteroids/images/asteroid4.png');
-      loader.addImage(g_enemyshipImg, '../asteroids/images/enemyship1.png');
+      loader.addImage(g_backgroundImg, './images/bg3_1.jpg');
+      loader.addImage(g_playerImg, './images/player.png');
+      loader.addImage(g_asteroidImg1, './images/asteroid1.png');
+      loader.addImage(g_asteroidImg2, './images/asteroid2.png');
+      loader.addImage(g_asteroidImg3, './images/asteroid3.png');
+      loader.addImage(g_asteroidImg4, './images/asteroid4.png');
+      loader.addImage(g_enemyshipImg, './images/enemyship1.png');
       
       // generate the single player actor - available across all scenes
       this.player = new Asteroids.Player(new Vector(GameHandler.width / 2, GameHandler.height / 2), new Vector(0.0, 0.0), 0.0);
@@ -1477,7 +1484,7 @@ if (typeof Asteroids == "undefined" || !Asteroids)
    
    extend(Asteroids.BenchMarkScene, Game.Scene,
    {
-      STARFIELD_SIZE: 32,
+      STARFIELD_SIZE: 5,
       
       game: null,
       
@@ -1528,7 +1535,7 @@ if (typeof Asteroids == "undefined" || !Asteroids)
        */
       updateStarfield: function updateStarfield(ctx)
       {
-         for (var s, i=0, j=this.starfield.length; i<j; i++)
+         for (var s, i=0, j=this.starfield.length / 500; i<j; i++)
          {
             s = this.starfield[i];
             s.render(ctx);
@@ -1571,7 +1578,7 @@ if (typeof Asteroids == "undefined" || !Asteroids)
             case 1:
             {
                // start with 10 asteroids - more will be added if framerate is acceptable
-               for (var i=0; i<10; i++)
+               for (var i=0; i<1; i++)
                {
                   this.enemies.push(this.generateAsteroid(Math.random()+1.0, ~~(Math.random()*4) + 1));
                }
@@ -1581,7 +1588,7 @@ if (typeof Asteroids == "undefined" || !Asteroids)
             case 2:
             {
                // start with 10 asteroids - more will be added if framerate is acceptable
-               for (var i=0; i<10; i++)
+               for (var i=0; i<1; i++)
                {
                   this.enemies.push(this.generateAsteroid(Math.random()+1.0, ~~(Math.random()*4) + 1));
                }
@@ -1591,7 +1598,7 @@ if (typeof Asteroids == "undefined" || !Asteroids)
             case 3:
             {
                // test 3 generates lots of enemy ships that fire
-               for (var i=0; i<10; i++)
+               for (var i=0; i<1; i++)
                {
                   this.enemies.push(new Asteroids.EnemyShip(this, i%2));
                }
@@ -1629,10 +1636,10 @@ if (typeof Asteroids == "undefined" || !Asteroids)
                   switch (this.feature)
                   {
                      case 1:
-                        count = 10;
+                        count = 1;
                         break;
                      case 2:
-                        count = 5;
+                        count = 1;
                         break;
                   }
                   for (var i=0; i<count; i++)
@@ -1662,7 +1669,7 @@ if (typeof Asteroids == "undefined" || !Asteroids)
                      this.testState += 25;
                      
                      // spray forward guns
-                     for (var i=0; i<=~~(this.testState/500); i++)
+                     for (var i=0; i<=~~(this.testState/5000); i++)
                      {
                         h = this.player.heading - 15;
                         t = new Vector(0.0, -7.0).rotate(h * RAD).add(this.player.vector);
@@ -6076,14 +6083,18 @@ window.addEventListener('load', onloadHandler, false);
 var g_splashImg = new Image();
 function onloadHandler()
 {
+   console.log("onload handler");
    // once the slash screen is loaded, bootstrap the main benchmark class
-   g_splashImg.src = 'images/canvasmark2013.jpg';
+   console.log("load splash screen");
    g_splashImg.onload = function()
    {
+      console.log("splash screen loaded");
       // init our game with Game.Main derived instance
       GameHandler.init();
       GameHandler.start(new Benchmark.Main());
    };
+
+   g_splashImg.src = './images/canvasmark2013.jpg';
 }
 
 
@@ -6105,7 +6116,7 @@ if (typeof Benchmark == "undefined" || !Benchmark)
  * @class Benchmark.Main
  */
 (function()
-{
+{  console.log("Main benchmark class !!!");
    Benchmark.Main = function()
    {
       Benchmark.Main.superclass.constructor.call(this);
@@ -6155,6 +6166,7 @@ if (typeof Benchmark == "undefined" || !Benchmark)
  */
 (function()
 {
+   console.log("init infoscene");
    Benchmark.InfoScene = function(game)
    {
       this.game = game;
@@ -6195,6 +6207,7 @@ if (typeof Benchmark == "undefined" || !Benchmark)
       
       onInitScene: function onInitScene()
       {
+         console.log("init scene");
          this.playable = false;
          this.start = false;
          this.yoff = 1;
@@ -6206,7 +6219,7 @@ if (typeof Benchmark == "undefined" || !Benchmark)
          if (this.imagesLoaded)
          {
             // splash logo image dimensions
-            var w = 640, h = 640;
+            var w = 400, h = 400;
             if (this.yoff < h - 1)
             {
                // liquid fill bg effect
@@ -6230,6 +6243,7 @@ if (typeof Benchmark == "undefined" || !Benchmark)
          }
          else if (!this.loadingMessage)
          {
+            console.log("loading image !!!!!!!");
             Game.centerFillText(ctx, "Please wait... Loading Images...", "18pt Helvetica", GameHandler.height/2, "#eee");
             this.loadingMessage = true;
          }
@@ -6241,6 +6255,7 @@ if (typeof Benchmark == "undefined" || !Benchmark)
        */
       ready: function ready()
       {
+        console.log("ready");
          this.imagesLoaded = true;
          if (location.search === "?auto=true")
          {

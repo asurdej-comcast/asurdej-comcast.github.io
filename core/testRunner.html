@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        .focused {
+            background-color: rgb(211, 211, 211);
+        }
+
+        #controls {
+            display: inline-block;
+        }
+
+        #results {
+            display: block;
+            width: 100%;
+        }
+
+        .column {
+            display: inline-block;
+            width: 25%;
+            vertical-align: top;
+        }
+
+        .tcinner {
+            display: block;
+            width: 100%;
+            border-top: 1px solid black;
+        }
+
+        #warning {
+            background-color: rgb(255, 151, 32);
+            margin-top: 20px;
+            margin-bottom: 20px;
+
+            border-radius: 5px;
+        }
+
+        .testcase {
+            white-space: nowrap;
+            display: grid;
+            border: 2px solid #c7c7c7;
+            border-radius: 5px;
+            font-size: small;
+            margin: 1px;
+            padding: 1px;
+            text-align: left;
+            overflow: hidden;
+        }
+
+        .testcase.passed {
+            border-color: #5caf86
+        }
+
+        .testcase.failed {
+            border-color: #cc7171;
+        }
+
+        .testcase.failed.optional {
+            border-color: #b17d0e;
+        }
+
+    </style>
+    <script src="lib/utils.js"></script>
+    <script src="lib/keyhandler.js"></script>
+    <script>
+        var baseTestUrl = window.location.href.replace("testRunner.html", "tests/");
+        // var baseTestUrl = "http://10.42.0.1:1337/tests/";  // python -m SimpleHTTPServer 1337
+        const TestsDescs = [
+            { ticket:"XIONE-12493", desc:"Progressive video - duration at EOS 1", url:"XIONE-12493_video_duration_progressive.html?url=../media/mov_bbb.mp4" },
+            { ticket:"XIONE-12493", desc:"Progressive video - duration at EOS 2", url:"XIONE-12493_video_duration_progressive.html?url=../media/itvx_dominos.mp4" },
+            { ticket:"XIONE-12493", desc:"Progressive video - duration at EOS 3", url:"XIONE-12493_video_duration_progressive.html?url=../media/itvx_cupra.mp4" },
+            { ticket:"RDK-41921", desc:"[MSE] Resume playback after pause and rate(0)", url:"RDK-41921_mse_pause_zeroRate_play.html" },
+            { ticket:"RDK-41921", desc:"MSE pause during seek", url:"RDK-41921_mse_seek_pause.html" },
+            { ticket:"RDK-42855", desc:"MSE set rete(0) during seek", url:"RDK-42855_mse_seek_zeroRate.html" },
+            { ticket:"RDK-42855", desc:"MSE resume after rate(0) and pause()", url:"RDK-42855_mse_zeroRate_pause_resume.html" },
+            { ticket:"RDK-43828", desc:"MSE audioseek into buffered while playing", url:"RDK-43828_mse_audio_seek_into_buffered_while_playing.html" },
+            { ticket:"RDK-43828", desc:"MSE audio seek into unbuffered while playing", url:"RDK-43828_mse_audio_seek_into_unbuffered_while_playing.html" },
+            { ticket:"RDK-43828", desc:"MSE audio seek into unbuffered while seeking", url:"RDK-43828_mse_audio_seek_into_unbuffered_while_seeking.html" },
+            { ticket:"RDK-42816", desc:"Progressive - seek audio at start", url:"RDK-42816_progressive_seek_audio_at_start.html" },
+            { ticket:"RDK-42816", desc:"Progressive - audio positions progress", url:"RDK-42816_progressive_audio_positions_progress.html" },
+            { ticket:"RDK-42816", desc:"Progressive - audio seek during play", url:"RDK-42816_progressive_seek_audio_during_play.html" },
+            { ticket:"RDK-42816", desc:"Progressive - audio seek audio during pause", url:"RDK-42816_progressive_seek_audio_during_pause.html" },
+            { ticket:"RDK-40567", desc:"SpeechSynthesis support", url:"RDK-40567_speech_synthesis_support.html" },
+            { ticket:"RDK-40567", desc:"SpeechSynthesis error handling", url:"RDK-40567_speech_synthesis_error_handling.html" },
+            { ticket:"LLAMA-12278", desc:"[MSE] Instant rate change while playing", url:"LLAMA-12278_mse_instant_rate_change_while_playing.html" },
+            { ticket:"RDK-44838", desc:"[MSE] Instant rate change while playing and with rebuffering", url:"RDK-44838_mse_instant_rate_change_while_playing_and_with_rebuffering.html" },
+            { ticket:"LLAMA-7401", desc:"[MSE] canplaythrough estimation on startup", url:"LLAMA-7401_mse_canplaythrough_estimation_on_startup.html" },
+            { ticket:"LLAMA-7401", desc:"[MSE] canplaythrough estimation during playback", url:"LLAMA-7401_mse_canplaythrough_estimation_during_playback.html" },
+            { ticket:"XIONE-13475", desc:"[MSE] Instant rate change before playing", url:"XIONE-13475_mse_rate_change_before_playing.html" },
+
+            // Optional tests:
+            { ticket:"RDK-40567", desc:"SpeechSynthesis Ok case", url:"RDK-40567_speech_synthesis_ok_case.html", optional:true },
+            { ticket:"RDK-40567", desc:"SpeechSynthesis cancellation", url:"RDK-40567_speech_synthesis_cancelation.html", optional:true },
+            { ticket:"RDK-40567", desc:"SpeechSynthesis invalid test", url:"RDK-40567_speech_synthesis_invalid_text.html", optional:true },
+            { ticket:"RDK-40567", desc:"SpeechSynthesis empty text", url:"RDK-40567_speech_synthesis_empty_text.html", optional:true },
+            { ticket:"RDK-40567", desc:"SpeechSynthesis pause and resume", url:"RDK-40567_speech_synthesis_pause_and_resume.html", optional:true },
+            { ticket:"LLAMA-12496", desc:"[MSE] audio limit", url:"LLAMA-12496_mse_audio_limit.html", optional:true },
+            { ticket:"LLAMA-12496", desc:"[MSE] video limit", url:"LLAMA-12496_mse_video_limit.html", optional:true },
+            { ticket:"XIONE-13285", desc:"Progressive audio position queries", url:"XIONE-13285_progressive_audio_position_queries_mp3.html", optional:true },
+        ];
+
+        const kGlobalTestTimeout = 60000; // 60sec
+
+        var testCase;
+        var running = false;
+        var autoRun = false;
+
+        var autostart = false;
+        if (_params["autostart"])
+            autostart = true;
+
+        var delay = _params["delay"];
+        if (isNaN(delay))
+            delay = 1;
+
+        const MAX_COLUMNS = 4;
+        const MIN_ELEMENTS_IN_COLUMN = 15;
+
+        function buildTestsList() {
+            let columns = TestsDescs.length / MIN_ELEMENTS_IN_COLUMN;
+            let elementsInColumn = MIN_ELEMENTS_IN_COLUMN;
+            if (columns >= MAX_COLUMNS) {
+                elementsInColumn = TestsDescs.length / MAX_COLUMNS + 1;
+            }
+            let currentElement = 0;
+            let currentColumn = createNewColumn();
+            for (let i = 0; i < TestsDescs.length; i++) {
+                if (++currentElement > elementsInColumn) {
+                    currentColumn = createNewColumn();
+                    currentElement = 1;
+                }
+
+                TestsDescs[i].id = i;
+                attachTestCase(TestsDescs[i], i, currentColumn);
+            }
+        }
+
+        function createNewColumn() {
+            let column = document.createElement("div");
+            column.classList.add("column");
+            document.getElementById("results").appendChild(column);
+            return column;
+        }
+
+        function attachTestCase(testCase, id, parent) {
+            let tc = document.createElement("div");
+            tc.className = "testcase";
+            if (tc.optional)
+                tc.classList.add("optional");
+            tc.classList.add("focusable");
+            tc.id = id;
+            testCase.divX = tc;
+
+            let tcDesc = document.createElement("div");
+            tcDesc.innerHTML = (id + 1) + ". " + (testCase.optional ? "optional " : "") +  testCase.ticket + " " + testCase.desc;
+            tcDesc.classList.add("tcin");
+
+            let tcRes = document.createElement("div");
+            tcRes.innerHTML = "<br>";
+            tcRes.classList.add("tcinner");
+
+            tc.appendChild(tcDesc);
+            tc.appendChild(tcRes);
+
+            tc.onclick = function(e) { runTest(e.target.id); };
+            parent.appendChild(tc);
+        }
+
+        function bodyOnLoad() {
+            if (!window.testRunner) {
+                console.log("No window.testRunner object. Ensure extension loaded");
+                let warn = document.getElementById("warning");
+                warn.innerHTML = "No window.testRunner object. Ensure extension loaded";
+            }
+            Array.from(document.getElementsByTagName("button")).forEach(element => {
+                element.classList.add("focusable");
+            });
+            buildTestsList();
+
+            if (autostart) {
+                runAll();
+            }
+        }
+
+        function runTest(id, auto = false) {
+            console.log("Start test case ", id);
+            if (running) {
+                console.log("Another test case in progress");
+                return;
+            }
+            running = true;
+            if (auto)
+                autoRun = true;
+            runTestCase(id);
+        }
+
+        function runAll() {
+            console.log("run all");
+            runTest(0, true);
+        }
+
+        function testFinished(id) {
+            ++id;
+            if (autoRun && id < TestsDescs.length) {
+                runTestCase(id);
+            } else {
+                console.log("All tests finished!");
+                autoRun = false;
+                running = false;
+            }
+        }
+
+        function testEnded(id, success, message) {
+            console.log("Got test result: " + success + ", msg: " + message);
+
+            let testResultDiv = TestsDescs[id].divX;
+            testResultDiv.classList.remove("passed");
+            testResultDiv.classList.remove("failed");
+            if (success) {
+                testResultDiv.classList.add("passed");
+            } else {
+                testResultDiv.classList.add("failed");
+                if (TestsDescs[id].optional) {
+                    testResultDiv.classList.add("optional");
+                }
+            }
+
+            testResultDiv.children[1].innerHTML = success ? "PASS" : "FAIL";
+            if (message && message.length > 0)
+                testResultDiv.children[1].innerHTML += " " + message;
+
+            // clean up
+            if (testCase) {
+                testCase.destroy();
+                testCase = null;
+            }
+            testFinished(id);
+        }
+
+        function runTestCase(id) {
+            let url = baseTestUrl + TestsDescs[id].url;
+            console.log("Starting test case " + url + " with timeout " + kGlobalTestTimeout);
+            let currentTimeout = setTimeout(() => {
+                testEnded(id, false, "TIMEOUT");
+            }, kGlobalTestTimeout);
+
+            testCase = startTest(url);
+            if (!testCase) {
+                clearTimeout(currentTimeout);
+                testEnded(id, false, "Failed to start TC");
+                return;
+            }
+            testCase.addEventListener("ended", (e) => {
+                clearTimeout(currentTimeout);
+                testEnded(id, e.success, e.message);
+            });
+            console.log("Test started!");
+        }
+    </script>
+</head>
+<body onload="bodyOnLoad()" style="background-color: white;">
+
+<div id="controls">
+    <button id="runAll" onclick="runAll();" class="focusable">Run All</button>
+</div>
+
+<div id="warning"></div>
+
+<div id="results"></div>
+</body>
+</html>

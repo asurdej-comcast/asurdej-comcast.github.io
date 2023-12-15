@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <script src="../lib/utils.js"></script>
+  <script src="../lib/mse.js"></script>
+</head>
+<body>
+  <video id="video" controls preload="none"></video>
+  <script type="text/javascript">
+    var video = document.getElementById("video");
+
+    videoUrl = _params["url"];
+    if (!videoUrl)
+      videoUrl = "../media/yt_car_video.mp4";
+    console.log("MSE video url: " + videoUrl);
+
+    prepareMSE(video, videoUrl, () => {
+      video.ontimeupdate = () => {
+        if (video.currentTime > 1) {
+          resetFailTimeout();
+          video.ontimeupdate = null;
+          startTesting();
+        }
+      }
+      failTimeout(5, "Video did not reach 1s currentTime in 5 sec");
+      video.play();
+    });
+
+    function startTesting() {
+      console.log("START TEST");
+      video.currentTime = 5;
+      setTimeout(()=>{video.playbackRate = 0;}, 5);
+      setTimeout(()=>{
+        var vidCurrTime = video.currentTime;
+        if (vidCurrTime < 6) {
+          reportPass("Video paused at " + vidCurrTime);
+        } else {
+          reportFail("Video position still progressing with playbackRate=0");
+        }
+
+      }, 10000);
+    }
+  </script>
+</body>
+</html>

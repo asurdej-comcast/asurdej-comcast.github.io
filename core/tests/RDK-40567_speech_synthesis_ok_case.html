@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <script src="../lib/utils.js"></script>
+  <script type="text/javascript">
+    function log(message) {
+          console.log(message);
+          document.getElementById('console').innerHTML += message + "<br>";
+    }
+
+    function runTestCase() {
+        setTimeout(() => {
+	    reportFail("Test case timed out");
+        }, 10000);
+
+        if (!window.speechSynthesis) {
+            reportFail("Browser doesn't support speech synthesis");
+            return;
+        }
+
+        var speechSynthesisStarted = false;
+        var speechSynthesis = new SpeechSynthesisUtterance("speech synthesis. ".repeat(5));
+        speechSynthesis.onstart = () => {
+            log("Speech synthesis started");
+            speechSynthesisStarted = true;
+        };
+        speechSynthesis.onerror = (event) => {
+            log("Speech synthesis error: " + event.error);
+            reportFail("Speech synthesis error: " + event.error);
+        };
+        speechSynthesis.onend = (event) => {
+            if (!speechSynthesisStarted) {
+                log("Speech synthesis ended before it even started");
+                reportFail("Speech synthesis ended before it even started");
+            } else {
+                log("Speech synthesis finished correctly");
+                reportPass("Speech synthesis finished correctly");
+            }
+        };
+        log("Speech synthesis about to start...");
+        window.speechSynthesis.speak(speechSynthesis);
+    }
+  </script>
+</head>
+<body onload="runTestCase()" bgcolor="gray">
+  <div id="console" style="font-size:10px"></div>
+</body>
+</html>

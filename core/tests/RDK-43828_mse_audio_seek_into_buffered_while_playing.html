@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <script src="../lib/utils.js"></script>
+  <script src="../lib/mse.js"></script>
+  <script type="text/javascript">
+    function log(message) {
+          console.log(message);
+          document.getElementById('console').innerHTML += message + "<br>";
+    }
+
+    async function runTestCase() {
+        setTimeout(() => {
+	    reportFail("Test case timed out");
+        }, 20000);
+
+        var audio = document.getElementById("audio");
+        var mediaSource = null;
+        var sourceBuffer = null;
+
+        const mimeCodec = "audio/mp4";
+        const assetUrl = "../media/yt_car_audio_1MB_trunc.mp4";
+        const mediaSourceDuration = 60.0;
+
+        mediaSource = await asyncPrepareMediaSource(audio, mediaSourceDuration, log);
+        sourceBuffer = await asyncPrepareSourceBuffer(mediaSource, mimeCodec, null, log);
+
+        // SourceBuffer setup
+        log("waiting for asset data...");
+        var data = await asyncFetchAB(assetUrl, log);
+        log("appending data to SourceBuffer up to 50.0...");
+        sourceBuffer.appendWindowEnd = 50.0;
+        sourceBuffer.appendBuffer(data);
+        sourceBuffer.onupdatestart = () => {
+            log("received SourceBuffer 'updatestart' event");
+            sourceBuffer.onupdatestart = null;
+        }
+        log("waiting for SourceBuffer 'updateend' event...");
+        await new Promise((resolve) => { sourceBuffer.onupdateend = () => { resolve(); } });
+        logMediaSourceStats(mediaSource, log);
+        logSourceBufferStats(sourceBuffer, log);
+
+        // seek forward after playing for a while
+        log("playing...");
+        audio.play();
+        await new Promise((resolve) => { audio.ontimeupdate = () => { if (audio.currentTime > 5.0) { resolve(); } } });
+        log("seeking to 15...");
+        audio.volume = 0.0;
+        audio.currentTime = 15.0;
+        await new Promise((resolve) => { audio.onseeked = () => { resolve(); } });
+        log("seeked to " + audio.currentTime);
+        audio.volume = 1.0;
+
+        if (audio.currentTime == 15.0) {
+            reportPass("Seeked to position " + audio.currentTime);
+        } else {
+            reportFail("Seeked to position " + audio.currentTime + " while 15 was expected");
+        }
+    }
+  </script>
+</head>
+<body onload="runTestCase()" bgcolor="gray">
+  <audio id="audio" controls></audio>
+  <div id="console" style="font-size:10px"></div>
+</body>
+</html>
