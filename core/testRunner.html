@@ -24,7 +24,6 @@
         .tcinner {
             display: block;
             width: 100%;
-            border-top: 1px solid black;
         }
 
         #warning {
@@ -40,7 +39,7 @@
             display: grid;
             border: 2px solid #c7c7c7;
             border-radius: 5px;
-            font-size: small;
+            font-size: medium;
             margin: 1px;
             padding: 1px;
             text-align: left;
@@ -153,7 +152,7 @@
 
             let tcDesc = document.createElement("div");
             tcDesc.innerHTML = (id + 1) + ". " + (testCase.optional ? "optional " : "") +  testCase.ticket + " " + testCase.desc;
-            tcDesc.classList.add("tcin");
+            tcDesc.classList.add("tcinner");
 
             let tcRes = document.createElement("div");
             tcRes.innerHTML = "<br>";
@@ -162,7 +161,12 @@
             tc.appendChild(tcDesc);
             tc.appendChild(tcRes);
 
-            tc.onclick = function(e) { runTest(e.target.id); };
+            tc.onclick = function(e) {
+                let target = e.target;
+                if (target.classList.contains("tcinner"))
+                    target = target.parentElement;
+                runTest(target.id);
+             };
             parent.appendChild(tc);
         }
 
@@ -184,7 +188,7 @@
 
         function runTest(id, auto = false) {
             console.log("Start test case: ", id);
-            if (!(typeof id === 'number')) {
+            if (isNaN(parseInt(id))) {
                 console.log("invalid id");
                 return;
             }
