@@ -1,0 +1,70 @@
+<html>
+  <head>
+    <!-- <script src="https://code.jquery.com/jquery-1.12.4.js"></script> -->
+  </head>
+  <body bgcolor="#ff0055">
+    <br><br><br>
+    <div style="position:relative;left:10px">
+      <table>
+        <tr>
+          <td valign="top">
+            <p>currentTime = ?</p>
+            <video width="480" controls>
+                Sorry, your browser doesn't support embedded videos.
+            </video>
+          </td>
+          <td id="log" style="font-size:10px">
+          </td>
+        </tr>
+      </table>
+    </div>
+    <script>
+
+
+var video = document.getElementsByTagName('video')[0];
+
+setTimeout(setupMSE, 1000);
+
+
+var sourceBufferVid;
+function log(message) {
+    console.log(message);
+    document.getElementById('log').innerHTML = document.getElementById('log').innerHTML + message + "<br>";
+}
+
+function setupMSE() {
+
+
+  let  mimeCodec = 'video/mp4; codecs="avc1.42E01E, mp4a.40.2"';
+  log("is " + mimeCodec + " supported: " + MediaSource.isTypeSupported(mimeCodec));
+
+  mimeCodec = 'video/mp4; codecs="av1"';
+  log("is " + mimeCodec + " supported: " + MediaSource.isTypeSupported(mimeCodec));
+
+  mimeCodec = 'video/mp4; codecs="av00"';
+  log("is " + mimeCodec + " supported: " + MediaSource.isTypeSupported(mimeCodec));
+
+  mimeCodec = 'video/mp4; codecs="av01"';
+  log("is " + mimeCodec + " supported: " + MediaSource.isTypeSupported(mimeCodec));
+
+
+  mimeCodec = 'video/mp4; codecs="av01.0.00M.00"';
+  log("is " + mimeCodec + " supported: " + MediaSource.isTypeSupported(mimeCodec));
+
+  mimeCodec = 'video/mp4; codecs="av00.0.00M.08"';
+  log("is " + mimeCodec + " supported: " + MediaSource.isTypeSupported(mimeCodec));
+
+  mimeCodec = 'video/mp4; codecs="av01.0.00M.08"';
+  log("is " + mimeCodec + " supported: " + MediaSource.isTypeSupported(mimeCodec));
+
+
+  mimeCodec = 'video/mp4; codecs="av1.0.00M.08"';
+  log("is " + mimeCodec + " supported: " + MediaSource.isTypeSupported(mimeCodec));
+
+  mimeCodec = 'video/mp4; codecs="av1.0.00M.00"';
+  log("is " + mimeCodec + " supported: " + MediaSource.isTypeSupported(mimeCodec));
+}
+    </script>
+  </body>
+</html>
+
