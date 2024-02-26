@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <script src="../lib/utils.js"></script>
+  <script src="../lib/mse.js"></script>
+</head>
+<body onload="setTimeout(() => { startTest(); }, 10000);">
+  <video id="video" controls></video>
+  <div id="console" style="font-size:10px"></div>
+  <script type="text/javascript">
+    function log(message) {
+          console.log(message);
+          document.getElementById('console').innerHTML += message + "<br>";
+    }
+
+   var videoSourceBuffer = null;
+   var videoSourceBuffer2 = null;
+
+
+    async function startTest() {
+        log("startTest");
+        var mediaElement = document.getElementById("video");
+        var mediaSource = null;
+
+        const videoMimeType = "video/mp4";
+        const audioMimeType = "audio/mp4";
+        const videoAssetUrl = "../media/yt_car_video.mp4";
+
+        mediaSource = await asyncPrepareMediaSource(mediaElement, duration=60.0, log);
+        videoSourceBuffer = await asyncPrepareSourceBuffer(mediaSource, videoMimeType, null, log);
+        audioSourceBuffer = await asyncPrepareSourceBuffer(mediaSource, audioMimeType, null, log);
+
+        var videoData = await asyncFetchAB(videoAssetUrl, log);
+        await asyncAppendDataToSourceBuffer(mediaSource, videoSourceBuffer, videoData, log);
+        videoData = null;
+
+        log("playing...");
+        //mediaElement.play();
+        log("about to perform rebuffering when currentTime > 5...");
+
+        setTimeout(() => {
+            log("currentTime = " + mediaElement.currentTime);
+            log("remove source buffer...");
+            mediaSource.removeSourceBuffer(videoSourceBuffer);
+            log("currentTime = " + mediaElement.currentTime);
+            setTimeout(() => {
+                log("currentTime = " + mediaElement.currentTime);
+                log("add source buffer...");
+                asyncPrepareSourceBuffer(mediaSource, videoMimeType, null, log).then((sourceBuffer) => {
+                    log("sourceBuffer = " + sourceBuffer);
+                    videoSourceBuffer2 = sourceBuffer;
+                    console.log("async fetch ab");
+                    asyncFetchAB(videoAssetUrl, log).then((data) => {
+                        log("videoData = " + data);
+
+                        console.log("async append data to source buffer");
+                        asyncAppendDataToSourceBuffer(mediaSource, sourceBuffer, data, log).then(() => {
+                            log("append data to source buffer done");
+                        });
+                    });
+                });
+                
+            }, 5000);
+        }, 5000);
+    }
+  </script>
+</body>
+</html>

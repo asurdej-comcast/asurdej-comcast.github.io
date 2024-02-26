@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <script src="../lib/utils.js"></script>
+  <script type="text/javascript">
+    function runTestCase() {
+        setTimeout(() => {
+            reportFail("Test case timed out");
+        }, 5000);
+
+        if (!window.AudioContext && !window.webkitAudioContext) {
+            reportFail("Browser doesn't support web audio");
+        } else {
+            reportPass("Browser supports web audio");
+        }
+    }
+  </script>
+</head>
+<body onload="runTestCase()" bgcolor="gray">
+</body>
+</html>

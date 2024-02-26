@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="../lib/utils.js"></script>
+  <script src="../lib/keyhandler.js"></script>
+  <script type="text/javascript">
+    var fillCharacter = "A";
+    var bucketSize = Infinity;
+    var bucketKeysAllocated = [];
+
+    function runTestCase() {
+
+        if (!tryLoading()) {
+            updateFillCharacter(fillCharacter);
+            updateBucketSize(bucketSize);
+            updateKeysAllocated();
+            updateTotalCharactersAllocated(0);
+        }
+
+        document.getElementById("character1").onclick = () => { clearLocalStorage(); updateFillCharacter("A"); };
+        document.getElementById("character2").onclick = () => { clearLocalStorage(); updateFillCharacter("Ą"); };
+        document.getElementById("bucketInf").onclick = () => { clearLocalStorage(); updateBucketSize(Infinity); };
+        document.getElementById("bucket0k").onclick = () => { clearLocalStorage(); updateBucketSize(1); };
+        document.getElementById("bucket1k").onclick = () => { clearLocalStorage(); updateBucketSize(1*1024); };
+        document.getElementById("bucket2k").onclick = () => { clearLocalStorage(); updateBucketSize(2*1024); };
+        document.getElementById("bucket4k").onclick = () => { clearLocalStorage(); updateBucketSize(4*1024); };
+        document.getElementById("bucket8k").onclick = () => { clearLocalStorage(); updateBucketSize(8*1024); };
+        document.getElementById("bucket16k").onclick = () => { clearLocalStorage(); updateBucketSize(16*1024); };
+        document.getElementById("bucket32k").onclick = () => { clearLocalStorage(); updateBucketSize(32*1024); };
+        document.getElementById("add32k").onclick = () => { addData(32*1024); };
+        document.getElementById("add128k").onclick = () => { addData(128*1024); };
+        document.getElementById("add512k").onclick = () => { addData(512*1024); };
+        document.getElementById("clear").onclick = () => { clearLocalStorage(); };
+
+    }
+
+    function tryLoading() {
+        var data;
+
+        data = _fetchData("inf");
+        if (data) {
+            updateFillCharacter(data[0]);
+            updateBucketSize(Infinity);
+            bucketKeysAllocated.push("inf");
+            updateKeysAllocated();
+            updateTotalCharactersAllocated(data.length);
+            return true;
+        }
+
+        for (const bucketSize of [1, 1*1024, 2*1024, 4*1024, 8*1024, 16*1024, 32*1024]) {
+            var bucketKey = getBucketKey(Math.trunc(bucketSize / 1024).toString() + "k", 0);
+            var bucketData = _fetchData(bucketKey);
+            if (!bucketData) {
+                continue;
+            }
+            updateFillCharacter(bucketData[0]);
+            updateBucketSize(bucketSize);
+            while (bucketData) {
+                bucketKeysAllocated.push(bucketKey);
+                bucketKey = getBucketKey(Math.trunc(bucketSize / 1024).toString() + "k", bucketKeysAllocated.length);
+                bucketData = _fetchData(bucketKey);
+            }
+            updateKeysAllocated();
+            updateTotalCharactersAllocated(bucketKeysAllocated.length * bucketSize);
+            return true;
+            break;
+        }
+        return false;
+    }
+
+    function updateFillCharacter(aFillCharacter) {
+        fillCharacter = aFillCharacter;
+        document.getElementById("character").innerHTML = "Character to use: " + fillCharacter;
+    }
+
+    function updateBucketSize(aBucketSize) {
+        bucketSize = aBucketSize;
+        document.getElementById("bucketSize").innerHTML = "Bucket size: " + bucketSize + " [characters]";
+    }
+
+    function clearLocalStorage() {
+        localStorage.clear();
+        bucketKeysAllocated = [];
+        updateKeysAllocated();
+        updateTotalCharactersAllocated(0);
+    }
+
+    function addData(characters) {
+        if (bucketSize == Infinity) {
+            var bucketKey = "inf";
+            var oldData = _fetchData(bucketKey);
+            var newData = oldData + fillCharacter.repeat(characters);
+            if (_storeData(bucketKey, newData)) {
+                if (bucketKeysAllocated.length == 0) {
+                    bucketKeysAllocated.push(bucketKey);
+                }
+                updateKeysAllocated();
+                updateTotalCharactersAllocated(newData.length);
+            }
+        } else {
+            var bucketsToFill = characters / bucketSize;
+            var bucketsAllocatedBefore = bucketKeysAllocated.length;
+            for (var i = 0; i < bucketsToFill; i++) {
+                var bucketKey = getBucketKey(Math.trunc(bucketSize / 1024).toString() + "k", bucketsAllocatedBefore + i);
+                console.log("key: "+bucketKey);
+                if (!_storeData(bucketKey, fillCharacter.repeat(bucketSize))) {
+                    break;
+                }
+                bucketKeysAllocated.push(bucketKey);
+            }
+            updateKeysAllocated();
+            updateTotalCharactersAllocated(bucketKeysAllocated.length * bucketSize);
+        }
+    }
+
+    function getBucketKey(prefix, bucketNumber) {
+        const charactersNum = bucketNumber == 0 ? 1 : Math.floor(baseLog(0xFFFF, bucketNumber)) + 1;
+        var valueLeft = bucketNumber;
+        var characters = "";
+        for (var characterPos = 0; characterPos < charactersNum; characterPos++) {
+            const valueAtPos = (valueLeft / Math.pow(0xFFFF, characterPos)) % 0xFFFF;
+            characters += String.fromCharCode(valueAtPos);
+            valueLeft -= valueAtPos * Math.pow(0xFFFF, characterPos);
+        }
+        return prefix + characters;
+    }
+
+    function baseLog(x, y) {
+        return Math.log(y) / Math.log(x);
+    }
+
+    function _fetchData(key) {
+        var data = localStorage.getItem(key);
+        if (!data) {
+            data = "";
+        }
+        console.log("_fetchData(" + key + ") -> " + data.length);
+        return data;
+    }
+
+    function _storeData(key, data) {
+        console.log("_storeData(" + key + "," + data.length + ")");
+        try {
+            localStorage.setItem(key, data);
+        } catch (error) {
+            console.error(error);
+            return false;
+        }
+        return true;
+    }
+
+    function updateKeysAllocated() {
+        document.getElementById("numberOfBuckets").innerHTML = "Number of buckets: " + bucketKeysAllocated.length;
+    }
+
+    function updateTotalCharactersAllocated(totalCharactersAllocated) {
+        const totalKeyCharactersAllocated = bucketKeysAllocated.reduce((accumulator, currentValue) => accumulator + currentValue.length, 0);
+        document.getElementById("totalCharactersAllocated").innerHTML = "Local storage size: " + totalCharactersAllocated + " [characters] (+" + totalKeyCharactersAllocated + " key characters)";
+    }
+  </script>
+  <style>
+    body {
+        background-color: gray;
+    }
+    .focused {
+        border: 10px solid gray;
+    }
+  </style>
+</head>
+<body onload="runTestCase()">
+  <table bgcolor="white" border="1">
+    <tr>
+      <td>
+        <h4 id="character">Character to use: </h4>
+        <button id="character1" class="focusable focused">A</button>
+        <button id="character2" class="focusable">Ą</button><br>
+        <h4 id="bucketSize">Bucket size:  [characters]</h4>
+        <button id="bucketInf" class="focusable">infinity</button>
+        <button id="bucket0k" class="focusable">1</button>
+        <button id="bucket1k" class="focusable">1K</button>
+        <button id="bucket2k" class="focusable">2K</button>
+        <button id="bucket4k" class="focusable">4K</button>
+        <button id="bucket8k" class="focusable">8K</button>
+        <button id="bucket16k" class="focusable">16K</button>
+        <button id="bucket32k" class="focusable">32K</button>
+        <h2 id="totalCharactersAllocated">Local storage size:  [characters] (+ key characters)</h2>
+        <h3 id="numberOfBuckets">Number of buckets: </h3>
+        <button id="add32k" class="focusable">Add 32K</button>
+        <button id="add128k" class="focusable">Add 128K</button>
+        <button id="add512k" class="focusable">Add 512K</button>
+        <button id="clear" class="focusable">Clear</button>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>

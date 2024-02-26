@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <script src="../lib/utils.js"></script>
+  <script src="../lib/mse.js"></script>
+</head>
+<body>
+  <video id="video" controls></video>
+  <script type="text/javascript">
+    var video = document.getElementById("video");
+
+    videoUrl = _params["url"];
+    if (!videoUrl)
+      videoUrl = "../media/yt_car_video.mp4";
+    console.log("MSE video url: " + videoUrl);
+
+    prepareMSE(video, videoUrl, () => {
+      video.ontimeupdate = () => {
+        if (video.currentTime > 1) {
+          resetFailTimeout();
+          video.ontimeupdate = null;
+          startTesting();
+        }
+      }
+      failTimeout(5, "Video did not reach 1s currentTime in 5 sec");
+      video.play();
+    });
+
+
+    function startTesting() {
+      console.log("START TEST");
+      video.ontimeupdate = () => {
+        if (video.currentTime > 5) {
+          console.log("video reached 5sec");
+          resetFailTimeout();
+          video.ontimeupdate = null;
+
+          setTimeout(() => {
+            video.onpause = () => {
+              console.log("video paused");
+              resetFailTimeout();
+              var vidTimeAtPause = video.currentTime;
+              // make sure current time is also paused
+              setTimeout(() => {
+                if (video.currentTime == vidTimeAtPause) {
+                  reportPass("Video paused after a seek");
+                } else {
+                  reportFail("Video should be paused but currentTime is progressing");
+                }
+              }, 5000);
+            }
+            failTimeout(5, "Failed to pause video");
+            console.log("pause video");
+            video.pause();
+          }, 1000);
+        }
+      };
+      failTimeout(10, "video didn't resume after seek");
+      video.currentTime = 3;
+    }
+  </script>
+</body>
+</html>

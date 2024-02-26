@@ -1,0 +1,18 @@
+body {
+    background-color: gray;
+}
+
+.focused {
+    border: 10px solid gray;
+}
+
+#pass {
+    padding:10px;
+    font-size:30px;
+    background-color:green;
+}
+#fail {
+    padding:10px;
+    font-size:30px;
+    background-color:red;
+}

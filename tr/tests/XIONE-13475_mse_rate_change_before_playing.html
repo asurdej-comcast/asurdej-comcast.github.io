@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <script src="../lib/utils.js"></script>
+  <script src="../lib/mse.js"></script>
+  <script type="text/javascript">
+    function log(message) {
+          console.log(message);
+          document.getElementById('console').innerHTML += message + "<br>";
+    }
+
+    async function runTestCase() {
+        setTimeout(() => {
+	    reportFail("Test case timed out");
+        }, 30000);
+
+        var mediaElement = document.getElementById("video");
+        var mediaSource = null;
+        var audioSourceBuffer = null;
+        var videoSourceBuffer = null;
+
+        const audioMimeType = "audio/mp4";
+        const videoMimeType = "video/mp4";
+        const audioAssetUrl = "../media/yt_car_audio_1MB_trunc.mp4";
+        const videoAssetUrl = "../media/yt_car_video.mp4";
+
+        mediaSource = await asyncPrepareMediaSource(mediaElement, duration=60.0, log);
+        audioSourceBuffer = await asyncPrepareSourceBuffer(mediaSource, audioMimeType, null, log);
+        videoSourceBuffer = await asyncPrepareSourceBuffer(mediaSource, videoMimeType, null, log);
+        var audioData = await asyncFetchAB(audioAssetUrl, log);
+        var videoData = await asyncFetchAB(videoAssetUrl, log);
+        await asyncAppendDataToSourceBuffer(mediaSource, audioSourceBuffer, audioData, log);
+        await asyncAppendDataToSourceBuffer(mediaSource, videoSourceBuffer, videoData, log);
+
+        const desiredPlaybackRate = 2.0;
+        const measurementPeriodSeconds = 10.0;
+        const errorMargin = 0.35;
+
+        log("setting playbackRate...");
+        mediaElement.playbackRate = desiredPlaybackRate;
+        log("playing...");
+        mediaElement.play();
+        log("about to start measuring currentTime progression when currentTime > 0.5...");
+        await new Promise((resolve) => { mediaElement.ontimeupdate = () => { if (mediaElement.currentTime > 0.5) { resolve(); } } });
+
+        log("measuring currentTime progression for " + measurementPeriodSeconds + "s...");
+        var begin = mediaElement.currentTime;
+        await new Promise((resolve) => { setTimeout(() => { resolve(); }, measurementPeriodSeconds * 1000); });
+
+        var end = mediaElement.currentTime;
+        log("playback position changed from " + begin + " to " + end + " while playing at " + desiredPlaybackRate + "x speed for " + measurementPeriodSeconds + "s");
+        var delta = end - begin;
+        var expectedDelta = measurementPeriodSeconds * desiredPlaybackRate;
+        const msg = "Playback position change delta: " + delta + ", expected: " + expectedDelta + ", error margin: +/-" + errorMargin;
+        log(msg);
+        if (delta >= expectedDelta - errorMargin && delta <= expectedDelta + errorMargin) {
+            reportPass(msg);
+        } else {
+            reportFail(msg);
+        }
+    }
+  </script>
+</head>
+<body onload="runTestCase()" bgcolor="gray">
+  <video id="video" style="float: right;" controls></video>
+  <div id="console" style="font-size:10px"></div>
+</body>
+</html>

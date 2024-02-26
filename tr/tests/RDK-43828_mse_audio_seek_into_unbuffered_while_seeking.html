@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <script src="../lib/utils.js"></script>
+  <script src="../lib/mse.js"></script>
+  <script type="text/javascript">
+    function log(message) {
+          console.log(message);
+          document.getElementById('console').innerHTML += message + "<br>";
+    }
+
+    async function runTestCase() {
+        setTimeout(() => {
+	    reportFail("Test case timed out");
+        }, 20000);
+
+        var audio = document.getElementById("audio");
+        var mediaSource = null;
+        var sourceBuffer = null;
+
+        const mimeCodec = "audio/mp4";
+        const assetUrl = "../media/mov_bbb.aac";
+        const mediaSourceDuration = 60.0;
+
+        // MediaSource setup
+        mediaSource = new MediaSource;
+        log("MediaSource created, readyState: " + mediaSource.readyState);
+        audio.src = URL.createObjectURL(mediaSource);
+        log("MediaSource attached, readyState: " + mediaSource.readyState);
+        log("waiting for MediaSource 'sourceopen' event...");
+        await new Promise((resolve) => { mediaSource.onsourceopen = () => { resolve(); } });
+        log("MediaSource readyState: " + mediaSource.readyState);
+        mediaSource.duration = mediaSourceDuration;
+        log("MediaSource duration was set manually to: " + mediaSourceDuration + ", and it's " + mediaSource.duration + " now");
+
+        // SourceBuffer setup
+        log("MediaSource, '" + mimeCodec + "' supported: " + MediaSource.isTypeSupported(mimeCodec));
+        sourceBuffer = mediaSource.addSourceBuffer(mimeCodec);
+        log("MediaSource added SourceBuffer, readyState: " + mediaSource.readyState);
+        log("waiting for asset data...");
+        var data = await asyncFetchAB(assetUrl, log);
+        log("appending data to SourceBuffer up to 10.0...");
+        sourceBuffer.appendWindowEnd = 10.0;
+        sourceBuffer.appendBuffer(data);
+        sourceBuffer.onupdatestart = () => {
+            log("received SourceBuffer 'updatestart' event");
+            sourceBuffer.onupdatestart = null;
+        }
+        log("waiting for SourceBuffer 'updateend' event...");
+        await new Promise((resolve) => { sourceBuffer.onupdateend = () => { resolve(); } });
+        logMediaSourceStats(mediaSource, log);
+        logSourceBufferStats(sourceBuffer, log);
+
+        // seek forward 2 times after playing for a while and add missing data to complete
+        log("playing...");
+        audio.play();
+        await new Promise((resolve) => { audio.ontimeupdate = () => { if (audio.currentTime > 5.0) { resolve(); } } });
+        log("seeking to 15...");
+        audio.currentTime = 15.0;
+        log("waiting for MediaElement 'waiting' event...");
+        await new Promise((resolve) => { audio.onwaiting = () => { resolve(); } });
+        log("got 'waiting' event, seeking to 18...");
+        audio.currentTime = 18.0;
+        log("waiting for MediaElement 'seeking' event...");
+        await new Promise((resolve) => { audio.onseeking = () => { resolve(); } });
+        log("got 'seeking' event, adding missing data...");
+        sourceBuffer.abort(); // resetting parser state so that we can use 'data' again for append
+        sourceBuffer.appendWindowEnd = 25.0;
+        sourceBuffer.appendWindowStart = 11.0;
+        sourceBuffer.appendBuffer(data);
+        await new Promise((resolve) => { audio.onseeked = () => { resolve(); } });
+        log("seeked to " + audio.currentTime);
+        logMediaSourceStats(mediaSource, log);
+        logSourceBufferStats(sourceBuffer, log);
+
+        if (audio.currentTime == 18.0) {
+            reportPass("Seeked to position " + audio.currentTime);
+        } else {
+            reportFail("Seeked to position " + audio.currentTime + " while 18 was expected");
+        }
+    }
+  </script>
+</head>
+<body onload="runTestCase()" bgcolor="gray">
+  <audio id="audio" controls></audio>
+  <div id="console" style="font-size:10px"></div>
+</body>
+</html>

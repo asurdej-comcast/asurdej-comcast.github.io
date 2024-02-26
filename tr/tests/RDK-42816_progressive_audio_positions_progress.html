@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html>
+<head>
+<script src="../lib/utils.js"></script>
+<script type="text/javascript">
+
+// Test that performs multiple seek operations during progressive playback of an audio asset and verifies
+// that positions progress as expected without any big jumps between seeks
+
+var audio;                          // player instance
+var lastIntervalTime = 0.0;         // seconds
+var lastUpdateTime = 0.0;           // seconds
+var timeDiffThreshold = 2.0;        // seconds
+var targetSeekTimes = [450.0, 650.0, 123.0, 0.0, 50.0];
+var targetSeekIndex = 0;
+
+function load() {
+    var audioUrl = _params["url"];
+    if (!audioUrl) {
+        // Asset from https://cpetestutility.stb.r53.xcal.tv/CPETool/media/
+        audioUrl = "../media/Symphony No.6 (1st movement).mp3";
+    }
+    console.log("audioUrl = " + audioUrl);
+
+    audio = document.getElementById("audio");
+    audio.src = audioUrl;
+
+    audio.play();
+
+    setInterval(() => {
+        if (targetSeekIndex >= targetSeekTimes.length) {
+            reportPass("");
+            return;
+        }
+
+        checkCurrentTime(true);
+
+        lastIntervalTime = targetSeekTimes[targetSeekIndex++];
+
+        audio.currentTime = lastIntervalTime;
+
+        lastUpdateTime = lastIntervalTime;
+
+    }, 8000);
+
+    // Check time progress at regular intervals
+    setInterval(() => {
+        checkCurrentTime(false);
+    }, 100);
+
+    // Check time progress on time update callback
+    audio.ontimeupdate = (event) => {
+        time = audio.currentTime;
+
+        if ((time - lastUpdateTime) < 0) {
+            reportFail("Time jumped back in update callback: Current time: " + time + " last time: " + lastUpdateTime);
+        } else if ((time - lastUpdateTime) > timeDiffThreshold) {
+            reportFail("Time jump too big in update callback: Current time: " + time + " last time: " + lastUpdateTime);
+        } else {
+            // Time is progressing. Continue evaluation
+            lastUpdateTime = time;
+        }
+    };
+}
+
+function checkCurrentTime(willSeek) {
+    time = audio.currentTime;
+
+    if ((time - lastIntervalTime) < 0) {
+        reportFail("Time jumped back: Current time: " + time + " last time: " + lastIntervalTime);
+    } else if ((time - lastIntervalTime) > timeDiffThreshold) {
+        reportFail("Time jump too big: Current time: " + time + " last time: " + lastIntervalTime);
+    } else if (willSeek && ((time == 0) || (time == targetSeekTimes[targetSeekIndex]))) {
+        reportFail("Time has not progressed: Current time: " + time + " last time: " + lastIntervalTime);
+    } else {
+        // Time is progressing. Continue evaluation
+        lastIntervalTime = time;
+    }
+}
+
+</script>
+</head>
+<body onload="load()">
+    <audio id="audio" controls></audio>
+</body>
+</html>

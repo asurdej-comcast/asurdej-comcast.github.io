@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <script src="../lib/utils.js"></script>
+  <script src="../lib/mse.js"></script>
+  <script type="text/javascript">
+    function log(message) {
+        console.log(message);
+        document.getElementById('console').innerHTML += message + "<br>";
+        return message;
+    }
+
+    async function runTestCase() {
+        setTimeout(() => {
+            reportFail("Test case timed out");
+        }, 40000);
+
+        var mediaElement = document.getElementById("video");
+        var mediaSource = null;
+        var videoSourceBuffer = null;
+        var videoSourceBuffer = null;
+
+        const videoMimeType = "video/mp4";
+        const videoAssetUrl = "https://storage.googleapis.com/ytlr-cert.appspot.com/test-materials/media/car-20120827-89.mp4";
+
+        mediaSource = await asyncPrepareMediaSource(mediaElement, duration=3600.0, log);
+        videoSourceBuffer = await asyncPrepareSourceBuffer(mediaSource, videoMimeType, null, log);
+        var videoData = await asyncFetchAB(videoAssetUrl, log);
+        const chunkSize = 512 * 1024;
+        const expectedChunkToFail = 60;
+        for (var chunk = 0; chunk < 99; chunk++) {
+            var dataOffset = chunk * chunkSize;
+            if (dataOffset >= videoData.byteLength)
+                break;
+            log("Appending data chunk (" + dataOffset + "; " + (dataOffset + chunkSize) + ") to the SourceBuffer");
+            try {
+                sourceBuffer.appendBuffer(videoData.slice(dataOffset, dataOffset + chunkSize));
+                await new Promise((resolve) => { sourceBuffer.onupdateend = () => { resolve(); } });
+            } catch (e) {
+                const  QUOTA_EXCEEDED_ERROR_CODE = 22;
+                if (e.code != QUOTA_EXCEEDED_ERROR_CODE) {
+                    reportFail(log("Unexpected exception: " + e));
+                    return
+                }
+                if (chunk != expectedChunkToFail) {
+                    reportFail(log("Unexpected video SourceBuffer limit, approximate number of bytes written successfuly: " + dataOffset + " (" + (dataOffset / 1024 / 1024) + " MB)"));
+                    return
+                }
+                reportPass(log("Video SourceBuffer limit is correct (~30MB)"));
+                return;
+            }
+        }
+        reportFail("Video SourceBuffer limit is very large or unlimited");
+    }
+  </script>
+</head>
+<body onload="runTestCase()" bgcolor="gray">
+  <video id="video" style="display:none;"></video>
+  <div id="console" style="font-size:9px"></div>
+</body>
+</html>

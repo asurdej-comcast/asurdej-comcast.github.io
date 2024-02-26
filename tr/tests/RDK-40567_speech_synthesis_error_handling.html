@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <script src="../lib/utils.js"></script>
+  <script type="text/javascript">
+    function log(message) {
+          console.log(message);
+          document.getElementById('console').innerHTML += message + "<br>";
+    }
+
+    function runTestCase() {
+        setTimeout(() => {
+	    reportFail("Test case timed out");
+        }, 4000);
+
+        if (!window.speechSynthesis) {
+            reportFail("Browser doesn't support speech synthesis");
+            return;
+        }
+
+        var speechSynthesis = new SpeechSynthesisUtterance("speech synthesis. ".repeat(9999));
+        speechSynthesis.onstart = () => {
+            log("Speech synthesis started");
+        };
+        speechSynthesis.onerror = (event) => {
+            log("Speech synthesis error: " + event.error);
+            if (event.error == 'text-too-long') {
+                reportPass("Expected speech synthesis error: " + event.error);
+            } else {
+                reportFail("Unexpected speech synthesis error: " + event.error);
+            }
+        };
+        speechSynthesis.onend = (event) => {
+            log("Speech synthesis finished while it should yield 'text-too-long' error");
+            reportFail("Speech synthesis finished while it should yield 'text-too-long' error");
+        };
+        log("Speech synthesis about to start...");
+        window.speechSynthesis.speak(speechSynthesis);
+    }
+  </script>
+</head>
+<body onload="runTestCase()" bgcolor="gray">
+  <div id="console" style="font-size:10px"></div>
+</body>
+</html>

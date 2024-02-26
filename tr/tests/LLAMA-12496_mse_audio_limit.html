@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <script src="../lib/utils.js"></script>
+  <script src="../lib/mse.js"></script>
+  <script type="text/javascript">
+    function log(message) {
+        console.log(message);
+        document.getElementById('console').innerHTML += message + "<br>";
+        return message;
+    }
+
+    async function runTestCase() {
+        setTimeout(() => {
+            reportFail("Test case timed out");
+        }, 20000);
+
+        var mediaElement = document.getElementById("audio");
+        var mediaSource = null;
+        var audioSourceBuffer = null;
+        var videoSourceBuffer = null;
+
+        const audioMimeType = "audio/mp4";
+        const audioAssetUrl = "https://storage.googleapis.com/ytlr-cert.appspot.com/test-materials/media/car-20120827-8d.mp4";
+
+        mediaSource = await asyncPrepareMediaSource(mediaElement, duration=3600.0, log);
+        audioSourceBuffer = await asyncPrepareSourceBuffer(mediaSource, audioMimeType, null, log);
+        var audioData = await asyncFetchAB(audioAssetUrl, log);
+        const chunkSize = 512 * 1024;
+        const expectedChunkToFail = 6;
+        for (var chunk = 0; chunk < 99; chunk++) {
+            var dataOffset = chunk * chunkSize;
+            if (dataOffset >= audioData.byteLength)
+                break;
+            log("Appending data chunk (" + dataOffset + "; " + (dataOffset + chunkSize) + ") to the SourceBuffer");
+            try {
+                sourceBuffer.appendBuffer(audioData.slice(dataOffset, dataOffset + chunkSize));
+                await new Promise((resolve) => { sourceBuffer.onupdateend = () => { resolve(); } });
+            } catch (e) {
+                const  QUOTA_EXCEEDED_ERROR_CODE = 22;
+                if (e.code != QUOTA_EXCEEDED_ERROR_CODE) {
+                    reportFail(log("Unexpected exception: " + e));
+                    return
+                }
+                if (chunk != expectedChunkToFail) {
+                    reportFail(log("Unexpected audio SourceBuffer limit, approximate number of bytes written successfuly: " + dataOffset + " (" + (dataOffset / 1024 / 1024) + " MB)"));
+                    return
+                }
+                reportPass(log("Audio SourceBuffer limit is correct (~3MB)"));
+                return;
+            }
+            logSourceBufferStats(sourceBuffer, log);
+        }
+        reportFail("Audio SourceBuffer limit is very large or unlimited");
+    }
+  </script>
+</head>
+<body onload="runTestCase()" bgcolor="gray">
+  <audio id="audio" controls></audio>
+  <div id="console" style="font-size:10px"></div>
+</body>
+</html>

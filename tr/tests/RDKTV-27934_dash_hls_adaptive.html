@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html>
+<head>
+<script src="../lib/utils.js"></script>
+<script type="text/javascript">
+
+const dashVideoURL = "https://storage.googleapis.com/shaka-demo-assets/sintel/dash.mpd";
+const hlsVideoURL = "https://storage.googleapis.com/shaka-demo-assets/bbb-dark-truths-hls/hls.m3u8";
+
+function tryToPlayAdaptive(url, callback) {
+    failTimeout(10, "Neither canplay nor error event was fired for " + url);
+    // Try to play DASH video
+    var video = document.getElementById("video");
+    var ended = (success) => {
+        resetFailTimeout();
+        video.onerror = null;
+        video.oncanplay = null;
+        video.onemptied = () => {
+            video.onemptied = null;
+            callback(success);
+        }
+        video.src = "";
+    }
+    video.onerror = () => { ended(false); }
+    video.oncanplay = () => { ended(true); }
+    var video = document.getElementById("video");
+    video.src = url;
+}
+
+function load() {
+    var ensureNotSupported = function(type) {
+        var video = document.getElementById("video");
+        if (video.canPlayType(type)) {
+            reportFail(type + " should not be supported directly -> use MSE");
+            return;
+        }
+    }
+    if (ensureNotSupported("application/dash+xml") ||
+        ensureNotSupported("application/x-hls") ||
+        ensureNotSupported("application/x-mpegURL") ||
+        ensureNotSupported("application/vnd.apple.mpegurl")) {
+        return;
+    }
+
+    console.log("Ensure test videos are available");
+    if (!isURLAvailable(dashVideoURL)) {
+        reportFail("DASH video is not available: " + dashVideoURL);
+        return;
+    }
+    if (!isURLAvailable(hlsVideoURL)) {
+        reportFail("HLS video is not available: " + hlsVideoURL);
+        return;
+    }
+
+    console.log("Try to play DASH video: " + dashVideoURL);
+    tryToPlayAdaptive(dashVideoURL, (success) => {
+        console.log("DASH video was opened: " + success);
+        if (success) {
+            reportFail("DASH video was opened unexpectedly");
+            return;
+        }
+
+        // Try to play HLS video
+        console.log("Try to play HLS video: " + hlsVideoURL);
+        setTimeout(() => {
+            tryToPlayAdaptive(hlsVideoURL, (success) => {
+                console.log("HLS video was opened: " + success);
+                if (success) {
+                    reportFail("HLS video was opened unexpectedly");
+                    return;
+                }
+
+                reportPass("Both DASH and HLS video were NOT supported");
+            });
+        }, 0);
+    });
+}
+
+</script>
+</head>
+<body onload="load()">
+    <video id="video" controls></video>
+</body>
+</html>

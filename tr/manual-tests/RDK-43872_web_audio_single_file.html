@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <script src="../lib/utils.js"></script>
+  <script src="../lib/keyhandler.js"></script>
+  <script src="../lib/webaudio.js"></script>
+  <script type="text/javascript">
+    function runTestCase() {
+        setTimeout(() => {
+	    reportFail("Test case timed out as no outcome was specified by the tester");
+        }, 30000);
+
+        document.getElementById("pass").onclick = () => { reportPass(); };
+        document.getElementById("fail").onclick = () => { reportFail(); };
+
+        var audioContext = makeAudioContext();
+        if (!audioContext) {
+            reportFail("Web Audio not supported!");
+            return;
+        }
+
+        playFromFile(audioContext, "../media/mov_bbb.wav");
+    }
+  </script>
+  <link rel="stylesheet" href="../lib/webaudio.css">
+</head>
+<body onload="runTestCase()">
+  <table bgcolor="white" border="1">
+    <tr>
+      <td>
+        <h1>Outcome</h1>
+        <h2>Is audio audible?*</h2>
+        <h5>*Use LEFT/RIGHT arrows to select and ENTER to approve the choice</h5>
+        <button id="pass" class="focusable focused">Yes</button>
+        <button id="fail" class="focusable">No</button>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>

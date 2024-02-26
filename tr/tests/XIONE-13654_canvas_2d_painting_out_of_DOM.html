@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <script src="../lib/utils.js"></script>
+  <script type="text/javascript">
+    function runTestCase() {
+        setTimeout(() => {
+            reportFail("Test case timed out");
+        }, 30000);
+
+        var context = document.getElementById("canvas").getContext('2d');
+        context.rect(0, 0, 9999, 9999);
+        context.fillStyle = "#00ff00";
+        context.fill();
+
+        if (_params["useRAF"] && _params["useRAF"] == '1') {
+            requestAnimationFrameBasedLoop(context);
+        } else {
+            timerBasedLoop(context);
+        }
+
+        setTimeout(() => {
+            console.log("removing all document.body children...");
+            document.body.innerHTML = '<canvas id="canvas2" width="960" height="540" style="width: 640px; height: 360px; left: 0px; position: absolute; top: 0px; transform: translate(0px, 0px) scale3d(2, 2, 1); transform-origin: 0px 0px;"/>';
+        }, 5000);
+
+        setTimeout(() => {
+            console.log("trying to get WebGL context...");
+            tryGettingWebGLContext();
+        }, 10000);
+    }
+
+    function requestAnimationFrameBasedLoop(context) {
+        drawFrame(context);
+        requestAnimationFrame(() => { requestAnimationFrameBasedLoop(context); });
+    }
+
+    function timerBasedLoop(context) {
+        setInterval(() => { drawFrame(context); }, 16.66666666);
+    }
+
+    var image = null;
+    var framesDrawn = 0;
+
+    function drawFrame(context) {
+        if (!image) {
+            image = document.getElementById("image");
+        }
+        context.drawImage(image, 0, 0);
+
+        framesDrawn++;
+        if (framesDrawn % 60 == 0) {
+            console.log("framesDrawn: " + framesDrawn);
+        }
+    }
+
+    function tryGettingWebGLContext() {
+        if (document.getElementById("canvas2").getContext("webgl").isContextLost()) {
+            reportFail("WebGL context is lost very likely due to GPU memory being exhausted");
+        } else {
+            reportPass();
+        }
+    }
+  </script>
+</head>
+<body onload="runTestCase()" bgcolor="gray">
+  <canvas id="canvas" width="960" height="540" style="width: 640px; height: 360px; left: 0px; position: absolute; top: 0px; transform: translate(0px, 0px) scale3d(2, 2, 1); transform-origin: 0px 0px;"/>
+  <img id="image" src="https://sky.play.works/service/apps/puppy_rescue/media/graphics/game/loading/loading-bg.png" style="display:none;"/>
+</body>
+</html>

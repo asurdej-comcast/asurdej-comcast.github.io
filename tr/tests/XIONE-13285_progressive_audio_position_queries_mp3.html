@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <script src="../lib/utils.js"></script>
+  <script src="../lib/mse.js"></script>
+  <script type="text/javascript">
+    function log(message) {
+        console.log(message);
+        document.getElementById('console').innerHTML += message + "<br>";
+    }
+
+    async function runTestCase() {
+        setTimeout(() => {
+	    reportFail("Test case timed out");
+        }, 25000);
+
+        var audio = document.getElementById("audio");
+        audio.src = "https://traffic.megaphone.fm/GLT6664451356.mp3?updated=1676312832"
+
+        log("playing...");
+        audio.play();
+
+        log("waiting for currentTime to reach at least 5.0...");
+        await new Promise((resolve) => { audio.ontimeupdate = () => { if (audio.currentTime > 5.0) { resolve(); } } });
+
+        log("Position progressed and is " + audio.currentTime + " now");
+        reportPass("Position progressed and is " + audio.currentTime + " now");
+    }
+  </script>
+</head>
+<body onload="runTestCase()" bgcolor="gray">
+  <audio id="audio" controls></audio>
+  <div id="console" style="font-size:10px"></div>
+</body>
+</html>
