@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head>
+
+    <script src="url_params.js"></script>
+    <script>
+
+var ala;
+
+function allocateMemory(size) {
+    const megaByte = 1024 * 1024; // 1 MB in bytes
+    const arraySize = size; // Adjust this value to allocate more or less memory
+
+    let hugeArray = new Array(arraySize).fill(new Array(megaByte).fill(Math.floor(Math.random() * 256)));
+
+    console.log("Memory allocated successfully.");
+    return hugeArray;
+}
+var arr = [];
+
+ function test() {
+  setInterval(() => {
+    arr.push(allocateMemory(100));
+  }, 1000);
+ }
+
+ function load() {
+  setTimeout(()=>{test();}, 3000);
+ }
+
+</script>
+</head>
+<body onload="load()" bgcolor="white">
+</body>
+</html>
