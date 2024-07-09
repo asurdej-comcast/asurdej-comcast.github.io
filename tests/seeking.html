@@ -1,0 +1,84 @@
+<html>
+  <head>
+    <script>
+      
+      const audioUrl = 'https://dash.akamaized.net/akamai/bbb_30fps/bbb_a64k/bbb_a64k_$Number$.m4a'
+      const videoUrl = 'https://dash.akamaized.net/akamai/bbb_30fps/bbb_30fps_1280x720_4000k/bbb_30fps_1280x720_4000k_$Number$.m4v'
+
+      async function fetchURL(url) {
+        return new Promise((resolve) => {
+          var xhr = new XMLHttpRequest;
+          xhr.open('get', url);
+          xhr.responseType = 'arraybuffer';
+          xhr.onload = function () {
+            resolve(xhr.response);
+          };
+          xhr.send();
+        });
+      }
+
+      async function appendSB(sourceBuffer, data) {
+        return new Promise((resolve) => {
+          sourceBuffer.onupdateend = () => { resolve(); };
+          sourceBuffer.appendBuffer(data);
+        });
+      }
+
+      async function fetchAndAppend(sourceBuffer, url) {
+        return new Promise(async (resolve) => {
+          let data = await fetchURL(url);
+          await appendSB(sourceBuffer, data);
+          resolve();
+        });
+      }
+
+      function testSeek() {
+
+      }
+
+      async function startTest() {
+        var video = document.getElementById("video");
+        var mediaSource = new MediaSource;
+        video.src = URL.createObjectURL(mediaSource);
+        await new Promise((resolve) => { mediaSource.onsourceopen = () => { resolve(); } });
+
+        let videoSb = mediaSource.addSourceBuffer('video/mp4; codecs="avc1.640028"');
+        let audioSb = mediaSource.addSourceBuffer('audio/mp4; codecs="mp4a.40.2"');
+
+        await fetchAndAppend(audioSb, audioUrl.replace('$Number$', 0));
+        await fetchAndAppend(audioSb, audioUrl.replace('$Number$', 1));
+
+        await fetchAndAppend(videoSb, videoUrl.replace('$Number$', 0));
+        await fetchAndAppend(videoSb, videoUrl.replace('$Number$', 1));
+
+        video.onseeking = () => {
+              console.log("[SEEKING] event: video.seeking = ", video.seeking, video.seeking ? "PASS" : "FAIL");
+              if (!video.seeking) {
+                  video.ontimeupdate = null;
+                  video.pause();
+              }
+        }
+
+        video.onseeked = () => {
+              console.log("SEEKED event: " + video.seeking);
+        }
+
+        video.ontimeupdate = () => {
+          console.log("time changed: " + video.currentTime);
+          if (video.currentTime > 1.0) {
+            video.currentTime = 0;
+          }
+        };
+        video.play();
+      }
+
+      function load() {
+        setTimeout(startTest, 0);
+      }
+
+    </script>
+  </head>
+  <body bgcolor="white" onload="load();">
+    <video id="video" controls></video>
+  </body>
+</html>
