@@ -21,6 +21,7 @@ function playNoise(durationSec) {
     duration = durationSec;
   }
   console.log("Generating noise with duration: " + duration + "[sec]");
+  console.log("Sample rate: " + audioCtx.sampleRate);
   const frameCount = audioCtx.sampleRate * duration;
 
   var buffer = audioCtx.createBuffer(channels, frameCount, audioCtx.sampleRate);
@@ -99,3 +100,57 @@ function playFromFile(url) {
   console.log("Sending XHR request for " + url);
   request.send();
 }
+
+
+function playFromRawFile(url) {
+  console.log("Will play url: " + url);
+
+  var request = new XMLHttpRequest();
+  request.open('GET', url, true);
+  request.responseType = 'arraybuffer';
+  request.onloadend = function() {
+    console.log("Got audio file");
+    if (request.status !== 200 || request.response.byteLength <= 0) {
+        console.log("Got empty response");
+        return;
+    }
+    
+    console.log("Start decoding");
+
+    // Raw PCM format settings
+    const sampleRate = 44100; // Sample rate (e.g., 44.1 kHz)
+    const numChannels = 2;   // Number of channels (e.g., mono)
+
+    // Create an AudioBuffer
+    const buffer = audioCtx.createBuffer(numChannels, request.response.byteLength / 2, sampleRate);
+
+    // Convert raw PCM data (16-bit signed integers) to floating-point numbers
+    const rawData = new Int16Array(request.response);
+    for (let channel = 0; channel < numChannels; channel++) {
+      const nowBuffering = buffer.getChannelData(channel);
+      for (let i = 0; i < rawData.length; i++) {
+        nowBuffering[i] = rawData[i] / 32768; // Convert from 16-bit PCM to float (-1.0 to 1.0)
+      }
+    }
+
+    // Create a buffer source
+    const source = audioCtx.createBufferSource();
+    source.buffer = buffer;
+
+      var gainNode = audioCtx.createGain();
+      source.connect(gainNode);
+      gainNode.connect(audioCtx.destination);
+     
+      gainNode.gain.value = 0.7;
+      let gain = parseFloat(g_params["gain"]);
+      if (!isNaN(gain)) {
+        console.log("Setting custom gain: " + gain);
+        gainNode.gain.value = gain;
+      }
+      console.log("Starting playback");
+	  source.start();
+  };
+  console.log("Sending XHR request for " + url);
+  request.send();
+}
+
