@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset='UTF-8' />
+		<meta http-equiv='Cache-Control' content='no-cache, no-store, must-revalidate' />
+		<meta http-equiv='Pragma' content='no-cache' />
+		<meta http-equiv='Expires' content='0' />
+		<title>EME test</title>
+		<style>
+		 video {
+			 width: 100%;
+			 height: 100%;
+		 }
+		 body {
+			 margin:0;
+			 padding:0;
+			 background-color:white;
+		 }
+		</style>
+	</head>
+	<body>
+		<div>
+			<video id='videoPlayer'></video>
+		</div>
+		<script type='text/javascript'>
+		 if (!window.MediaSource) {
+			 throw 'No Media Source API available'
+		 }
+
+		 // https://media.axprod.net/TestVectors/v7-MultiDRM-SingleKey/Manifest.mpd
+
+		 var headers = {
+			 'X-AxDRM-Message':'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ2ZXJzaW9uIjoxLCJjb21fa2V5X2lkIjoiYjMzNjRlYjUtNTFmNi00YWUzLThjOTgtMzNjZWQ1ZTMxYzc4IiwibWVzc2FnZSI6eyJ0eXBlIjoiZW50aXRsZW1lbnRfbWVzc2FnZSIsImtleXMiOlt7ImlkIjoiOWViNDA1MGQtZTQ0Yi00ODAyLTkzMmUtMjdkNzUwODNlMjY2IiwiZW5jcnlwdGVkX2tleSI6ImxLM09qSExZVzI0Y3Iya3RSNzRmbnc9PSJ9XX19.4lWwW46k-oWcah8oN18LPj5OLS5ZU-_AQv7fe0JhNjA'
+		 }
+
+		 var pssh, licenseUrl, keySystem
+
+		 if (true) {
+			 pssh = 'AAAB5HBzc2gAAAAAmgTweZhAQoarkuZb4IhflQAAAcTEAQAAAQABALoBPABXAFIATQBIAEUAQQBEAEUAUgAgAHgAbQBsAG4AcwA9ACIAaAB0AHQAcAA6AC8ALwBzAGMAaABlAG0AYQBzAC4AbQBpAGMAcgBvAHMAbwBmAHQALgBjAG8AbQAvAEQAUgBNAC8AMgAwADAANwAvADAAMwAvAFAAbABhAHkAUgBlAGEAZAB5AEgAZQBhAGQAZQByACIAIAB2AGUAcgBzAGkAbwBuAD0AIgA0AC4AMAAuADAALgAwACIAPgA8AEQAQQBUAEEAPgA8AFAAUgBPAFQARQBDAFQASQBOAEYATwA+ADwASwBFAFkATABFAE4APgAxADYAPAAvAEsARQBZAEwARQBOAD4APABBAEwARwBJAEQAPgBBAEUAUwBDAFQAUgA8AC8AQQBMAEcASQBEAD4APAAvAFAAUgBPAFQARQBDAFQASQBOAEYATwA+ADwASwBJAEQAPgBEAFEAVwAwAG4AawB2AGsAQQBrAGkAVABMAGkAZgBYAFUASQBQAGkAWgBnAD0APQA8AC8ASwBJAEQAPgA8AC8ARABBAFQAQQA+ADwALwBXAFIATQBIAEUAQQBEAEUAUgA+AA=='
+			 licenseUrl = 'https://drm-playready-licensing.axtest.net/AcquireLicense'
+			 keySystem = 'com.microsoft.playready'
+		 }
+		 else {
+			 pssh = 'AAAANHBzc2gAAAAA7e+LqXnWSs6jyCfc1R0h7QAAABQIARIQnrQFDeRLSAKTLifXUIPiZg=='
+			 licenseUrl = 'https://drm-widevine-licensing.axtest.net/AcquireLicense'
+			 keySystem = 'com.widevine.alpha'
+		 }
+
+		 var protectedVideoBaseUrl = 'https://media.axprod.net/TestVectors/v7-MultiDRM-SingleKey/11'
+		 var protectedVideoInitUrl = protectedVideoBaseUrl + '/init.mp4'
+		 var protectedVideoTemplateUrl = protectedVideoBaseUrl + '/$Number$.m4s'
+
+		 var clearVideoBaseUrl = 'https://media.axprod.net/TestVectors/v7-Clear/11'
+		 var clearVideoInitUrl = clearVideoBaseUrl + '/init.mp4'
+		 var clearVideoTemplateUrl = clearVideoBaseUrl + '/$Number$.m4s'
+
+		 var videoMimeType = 'video/mp4; codecs="hev1.2.4.L150.90"'
+
+		 var audioBaseUrl = 'https://media.axprod.net/TestVectors/v7-MultiDRM-SingleKey/15'
+		 var audioInitUrl = audioBaseUrl + '/init.mp4'
+		 var audioTemplateUrl = audioBaseUrl + '/$Number$.m4s'
+
+		 var templateUrl = protectedVideoTemplateUrl // clearVideoTemplateUrl
+
+		 var video = document.querySelector('video')
+		 var ms = null
+		 var videoBuffer = null
+		 var mediaKeysObject = null
+		 var keySession = null
+
+		 setTimeout(runTest, 0)
+
+		 function pad(num) {
+			 var size = 4
+			 var s = "000" + num
+			 return s.substr(s.length-size)
+		 }
+
+		 function base64ToBytes(base64) {
+			 const binString = atob(base64)
+			 return Uint8Array.from(binString, (m) => m.codePointAt(0))
+		 }
+
+		 function requestLicense(initDataType, initData) {
+			 if (keySession == null) {
+				 console.log('creating new session and requesting license')
+
+				 keySession = mediaKeysObject.createSession()
+				 keySession.addEventListener("message", function(event) {
+					 console.log("got message, sending request")
+					 var request = event.message
+					 var xhr = new XMLHttpRequest()
+					 xhr.keySession = event.target
+					 xhr.responseType = 'arraybuffer'
+					 xhr.open("POST", licenseUrl)
+					 for (const key in headers) {
+						 xhr.setRequestHeader(key, headers[key])
+					 }
+					 xhr.onreadystatechange = function() {
+						 if (xhr.readyState == 4) {
+							 console.log("got license, updating")
+							 var license = new Uint8Array(xhr.response)
+							 xhr.keySession.update(license).catch((err) => {
+								 console.error('update() failed')
+							 })
+						 }
+					 }
+					 xhr.send(request)
+				 }, false)
+			 }
+
+			 keySession.generateRequest(initDataType, initData).catch((err) => {
+				 console.error('Unable to create or initialize key session, err = ' + err)
+			 })
+
+			 return
+		 }
+
+		 function runTest() {
+			 video.addEventListener('canplay', function onCanPlay() {
+				 video.removeEventListener('canplay', onCanPlay)
+				 video.play()
+			 })
+
+			 video.addEventListener('ended', function onEnded() {
+				 video.removeEventListener('ended', onEnded)
+				 cleanup()
+			 })
+
+			 video.addEventListener('encrypted', function onEncrypted(e) {
+				 video.removeEventListener('encrypted', onEncrypted)
+				 requestLicense(e.initDataType, e.initData)
+			 })
+
+			 video.addEventListener('error', function onError() {
+				 let err = video.error
+				 console.error("Error code=" + err.code + ', message =' + err.message)
+			 })
+
+			 video.addEventListener('loadedmetadata', function onLoadedMetadata(event) {
+				 video.removeEventListener('loadedmetadata', onLoadedMetadata)
+				 video.currentTime = 2
+			 })
+
+			 var config = [{
+				 initDataTypes: ['cenc'],
+				 videoCapabilities: [
+					 { contentType: videoMimeType},
+				 ]
+			 }]
+
+			 navigator.requestMediaKeySystemAccess(keySystem, config).then(
+				 function(keySystemAccess) {
+					 return keySystemAccess.createMediaKeys()
+				 }
+			 ).then(
+				 function(keys) {
+					 mediaKeysObject = keys
+					 return video.setMediaKeys(keys)
+				 }
+			 ).then(
+				 function() {
+					 requestLicense('cenc', base64ToBytes(pssh))
+
+					 ms = new MediaSource()
+					 ms.addEventListener('sourceopen', onSourceOpen)
+					 video.src = window.URL.createObjectURL(ms)
+				 }
+			 ).catch(
+				 function(error) {
+					 console.error('Failed to set up MediaKeys, err = ' + error)
+				 }
+			 )
+		 }
+
+		 function cleanup() {
+			 ms = null
+			 videoBuffer = null
+			 mediaKeysObject = null
+			 video.setMediaKeys(null)
+			 video.removeAttribute('src')
+			 video.load()
+			 video = null
+		 }
+
+		 function onSourceOpen() {
+			 console.log('onSourceOpen()')
+			 ms.removeEventListener('sourceopen', onSourceOpen)
+
+			 var videoIdx = 0
+			 videoBuffer = ms.addSourceBuffer(videoMimeType)
+			 var fetchVideo = () => {
+				 var url
+				 if (videoIdx === 0) {
+					 url = (templateUrl === protectedVideoTemplateUrl) ? protectedVideoInitUrl : clearVideoInitUrl
+				 } else {
+					 url = templateUrl.replace('$Number$', pad(videoIdx))
+				 }
+				 ++videoIdx
+				 fetchAndAppend(videoBuffer, url)
+			 }
+			 videoBuffer.addEventListener('updateend', () => {
+				 var buffStr = ''
+				 for (var i = 0; i < videoBuffer.buffered.length; ++i)
+					 buffStr +=  (i == 0 ? '[' : ', [') + videoBuffer.buffered.start(i) + ', ' + videoBuffer.buffered.end(i) + ']'
+				 console.log('currentTime = ' + video.currentTime + ', video buffered = ' + buffStr)
+				 if (videoBuffer.buffered.length && videoBuffer.buffered.end(videoBuffer.buffered.length - 1)  > 3600) {
+					 ms.endOfStream()
+					 return
+				 }
+				 if (videoIdx > 10) {
+					 videoIdx = 0
+					 templateUrl = (templateUrl === protectedVideoTemplateUrl) ? clearVideoTemplateUrl : protectedVideoTemplateUrl
+					 videoBuffer.timestampOffset = (videoBuffer.timestampOffset ? videoBuffer.timestampOffset : 0)  + 4 * 10
+				 }
+				 fetchVideo()
+			 });
+			 fetchVideo()
+
+			 var audioIdx = 0
+			 audioBuffer = ms.addSourceBuffer('audio/mp4; codecs="mp4a.40.29"')
+			 var fetchAudio = () => {
+				 var url
+				 if (audioIdx === 0) {
+					 url = audioInitUrl
+					 audioBuffer.appendWindowEnd = (audioBuffer.appendWindowEnd ? audioBuffer.appendWindowEnd : 0) + 4 * 10;
+				 } else {
+					 url = audioTemplateUrl.replace('$Number$', pad(audioIdx))
+				 }
+				 ++audioIdx
+				 fetchAndAppend(audioBuffer, url)
+			 }
+			 audioBuffer.addEventListener('updateend', () => {
+				 var buffStr = ''
+				 for (var i = 0; i < audioBuffer.buffered.length; ++i)
+					 buffStr +=  (i == 0 ? '[' : ', [') + audioBuffer.buffered.start(i) + ', ' + audioBuffer.buffered.end(i) + ']'
+				 console.log('currentTime = ' + video.currentTime + ', audio buffered = ' + buffStr)
+				 if (audioBuffer.buffered.length && audioBuffer.buffered.end(audioBuffer.buffered.length - 1)  > 3600) {
+					 return
+				 }
+				 if (audioIdx > 11) {
+					 audioBuffer.timestampOffset = (audioBuffer.timestampOffset ? audioBuffer.timestampOffset : 0)  + 4 * 10
+					 audioIdx = 0
+				 }
+				 fetchAudio()
+			 })
+			 fetchAudio()
+		 }
+
+		 function appendToBuffer(sb, chunk, url) {
+			 console.log('trying to append ' + chunk.byteLength + ' bytes from: ' + url)
+			 try {
+				 sb.appendBuffer(new Uint8Array(chunk))
+			 } catch (e) {
+				 setTimeout(appendToBuffer, 4000, sb, chunk, url)
+			 }
+		 }
+
+		 function fetchAndAppend(sb, url) {
+			 var xhr = new XMLHttpRequest()
+			 xhr.open('GET', url)
+			 xhr.responseType = 'arraybuffer'
+			 xhr.onload = function(e) {
+				 if (xhr.status != 200) {
+					 console.warn('Load failed. Unexpected status code ' + xhr.status + ' for ' + url)
+					 return
+				 }
+				 appendToBuffer(sb, xhr.response, url)
+			 };
+			 xhr.send()
+		 }
+		</script>
+	</body>
+</html>

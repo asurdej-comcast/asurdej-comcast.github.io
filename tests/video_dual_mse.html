@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    
+    <style>
+      video {
+        width: 100%;
+        height: 100%;
+        border-style: solid;
+        border-color: red;
+        border-width: 2px;
+      }
+      .focused, .focusable:hover {
+            background-color: rgb(211, 211, 211);
+        }
+      
+    </style>
+    <script src="../lib/params.js"></script>
+    <script src="../lib/mse.js"></script>
+    <script src="../lib/keyhandler.js"></script>
+    <script>
+
+    const audioUrl = 'https://dash.akamaized.net/akamai/bbb_30fps/bbb_a64k/bbb_a64k_$Number$.m4a'
+    const videoUrl = 'https://dash.akamaized.net/akamai/bbb_30fps/bbb_30fps_1280x720_4000k/bbb_30fps_1280x720_4000k_$Number$.m4v'
+
+    async function open_mse(tag_name) {
+      console.log("Opening video: " + tag_name);
+      let video = document.getElementById(tag_name);
+      let ms = await asyncPrepareMediaSource(video);
+      let sbV = await asyncPrepareSourceBuffer(ms, 'video/mp4; codecs="avc1.640028"');
+      let sbA = await asyncPrepareSourceBuffer(ms, 'audio/mp4; codecs="mp4a.40.2"');
+      await asyncFetchAndAppend(ms, sbV, videoUrl.replace('$Number$', 0));
+      await asyncFetchAndAppend(ms, sbV, videoUrl.replace('$Number$', 1));
+      await asyncFetchAndAppend(ms, sbV, videoUrl.replace('$Number$', 2));
+      await asyncFetchAndAppend(ms, sbV, videoUrl.replace('$Number$', 3));
+      await asyncFetchAndAppend(ms, sbV, videoUrl.replace('$Number$', 4));
+      await asyncFetchAndAppend(ms, sbV, videoUrl.replace('$Number$', 5));
+
+      await asyncFetchAndAppend(ms, sbA, audioUrl.replace('$Number$', 0));
+      await asyncFetchAndAppend(ms, sbA, audioUrl.replace('$Number$', 1));
+      await asyncFetchAndAppend(ms, sbA, audioUrl.replace('$Number$', 2));
+      await asyncFetchAndAppend(ms, sbA, audioUrl.replace('$Number$', 3));
+      await asyncFetchAndAppend(ms, sbA, audioUrl.replace('$Number$', 4));
+      await asyncFetchAndAppend(ms, sbA, audioUrl.replace('$Number$', 5));
+    }
+
+    async function append_more(tag_name) {
+      console.log("Appending more video: " + tag_name);
+      let video = document.getElementById(tag_name);
+      let ms = video.mediaSource;
+      let sbV = ms.sourceBuffers[0];
+      await asyncFetchAndAppend(ms, sbV, videoUrl.replace('$Number$', 3));
+      await asyncFetchAndAppend(ms, sbV, videoUrl.replace('$Number$', 4));
+      await asyncFetchAndAppend(ms, sbV, videoUrl.replace('$Number$', 5));
+      let sbA = ms.sourceBuffers[1];
+      await asyncFetchAndAppend(ms, sbA, audioUrl.replace('$Number$', 3));
+      await asyncFetchAndAppend(ms, sbA, audioUrl.replace('$Number$', 4));
+      await asyncFetchAndAppend(ms, sbA, audioUrl.replace('$Number$', 5));
+    }
+
+    async function load_video(tag_name) {
+      console.log("Loading video: " + tag_name);
+      let video = document.getElementById(tag_name);
+      video.load();
+    }
+
+    async function play_video(tag_name) {
+      console.log("Playing video: " + tag_name);
+      let video = document.getElementById(tag_name);
+      video.play();
+    }
+
+    async function pause_video(tag_name) {
+      console.log("Pausing video: " + tag_name);
+      let video = document.getElementById(tag_name);
+      video.pause();
+    }
+
+    async function eos_video(tag_name) {
+      console.log("Closing video: " + tag_name);
+      let video = document.getElementById(tag_name);
+      let ms = video.mediaSource;
+      ms.endOfStream();
+    }
+
+    async function clean_video(tag_name) {
+      console.log("Cleaning video: " + tag_name);
+      let video = document.getElementById(tag_name);
+      video.src = "";
+    }
+
+    async function my_seek_forward(tag_name, seconds) {
+      var video = document.getElementById(tag_name);
+      var pos = video.currentTime + seconds;
+      console.log("video.currentTime = " + pos);
+      video.currentTime = pos;
+    }
+    async function my_seek_back(tag_name, seconds) {
+      var video = document.getElementById(tag_name);
+      var pos = video.currentTime - seconds;
+      if (pos < 0)
+        pos = 0;
+      console.log("video.currentTime = " + pos);
+      video.currentTime = pos;
+    }
+
+    function onLoad() {
+      console.log("onLoad");
+      // add "focusable" class to all buttons
+      var buttons = document.getElementsByTagName("button");
+      for (var i = 0; i < buttons.length; i++) {
+        buttons[i].classList.add("focusable");
+      }
+    }
+    </script>
+
+  </head>
+  <body onload="onLoad()">
+
+    <div style="position: absolute; left: 0px; top: 0px; width: 50%;">
+
+      <button onclick="open_mse('MyVideo0')">Open (load)</button>
+      <button onclick="load_video('MyVideo0')">Load</button>
+      <button onclick="append_more('MyVideo0')">Append more data</button>
+      <br>
+      <button onclick="play_video('MyVideo0')">Play</button>
+      <button onclick="pause_video('MyVideo0')" >Pause</button>
+      <button onclick="eos_video('MyVideo0')" >EOS</button>
+      <button onclick="clean_video('MyVideo0')" >Clear</button>
+      <br>
+      <button onclick="my_seek_back('MyVideo0', 1)">Back 1s</button>
+      <button onclick="my_seek_forward('MyVideo0', 1)">Fwd 1s</button>
+      <br>
+      <button onclick="my_seek_forward('MyVideo0', 10)">Fwd 10s</button>
+      <button onclick="my_seek_back('MyVideo0', 10)">Back 10s</button>
+      <button onclick="my_seek_back('MyVideo0', 2)">Back 2s</button>
+      <br>
+      <video id="MyVideo0" preload="none" type="video/mpeg" controls>
+      </video>
+
+    </div>
+
+    <div style="position: absolute; left: 50%; top: 0px; width: 50%;">
+
+      <button onclick="open_mse('MyVideo1')">Open (load)</button>
+      <button onclick="load_video('MyVideo1')">Load</button>
+      <button onclick="append_more('MyVideo1')">Append more data</button>
+      <br>
+      <button onclick="play_video('MyVideo1')">Play</button>
+      <button onclick="pause_video('MyVideo1')" >Pause</button>
+      <button onclick="eos_video('MyVideo1')" >EOS</button>
+      <button onclick="clean_video('MyVideo1')" >Clear</button>
+      <br>
+      <button onclick="my_seek_back('MyVideo1', 1)">Back 1s</button>
+      <button onclick="my_seek_forward('MyVideo1', 1)">Fwd 1s</button>
+      <br>
+      <button onclick="my_seek_forward('MyVideo1', 10)">Fwd 10s</button>
+      <button onclick="my_seek_back('MyVideo1', 10)">Back 10s</button>
+      <button onclick="my_seek_back('MyVideo1', 2)">Back 2s</button>
+      <br>
+      <video id="MyVideo1" preload="none" type="video/mpeg">
+      </video>
+
+    </div>
+
+</body></html>
