@@ -114,7 +114,7 @@
             ++currentSeek;
             failTimeout(5, "Complete seek nr " + currentSeek);
             let target = Math.random() * maxSeekTime;
-            console.log("Seek to " + target);
+            console.log("Seek nr " + currentSeek + " to " + target + "sec");
             lastPosition = target;
             video.currentTime = target;
         }
