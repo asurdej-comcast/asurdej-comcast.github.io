@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset='UTF-8' />
+    <meta http-equiv='Cache-Control' content='no-cache, no-store, must-revalidate' />
+    <meta http-equiv='Pragma' content='no-cache' />
+    <meta http-equiv='Expires' content='0' />
+    <title>MSE Pause video in the middle of seek</title>
+    <style>
+        video {
+            width: 50%;
+            height: 50%;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: white;
+            overflow: hidden;
+        }
+    </style>
+    <script src="../lib/utils.js"></script>
+    <script src="../lib/mse.js"></script>
+</head>
+
+<body>
+    <script type='text/javascript'>
+        const audioUrl = 'https://dash.akamaized.net/akamai/bbb_30fps/bbb_a64k/bbb_a64k_$Number$.m4a'
+        const videoUrl = 'https://dash.akamaized.net/akamai/bbb_30fps/bbb_30fps_1280x720_4000k/bbb_30fps_1280x720_4000k_$Number$.m4v'
+
+        let video = null
+        var ms, audioSb, videoSb;
+
+        document.addEventListener('DOMContentLoaded', function () {
+            setTimeout(startApp, 0)
+        })
+
+
+        function cleanup() {
+            let srcUrl = video.src
+            video.removeAttribute('src')
+            video.load()
+            video.remove()
+            video = null
+            window.URL.revokeObjectURL(srcUrl)
+        }
+
+        async function startApp() {
+            video = document.createElement('video')
+            document.body.appendChild(video)
+
+            video.addEventListener('error', function (e) {
+                reportFail('Test failed. Got an error: ' + video.error.code + ', ' + video.error.message)
+                cleanup()
+            })
+
+            ms = await asyncPrepareMediaSource(video);
+            var audioSb, videoSb;
+
+            if (_params["audio"] != 0)
+                audioSb = await asyncPrepareSourceBuffer(ms, 'audio/mp4; codecs="mp4a.40.2"')
+            if (_params["video"] != 0)
+                videoSb = await asyncPrepareSourceBuffer(ms, 'video/mp4; codecs="avc1.640028"')
+
+            audioSb && await asyncFetchAndAppend(ms, audioSb, audioUrl.replace('$Number$', 0))
+            videoSb && await asyncFetchAndAppend(ms, videoSb, videoUrl.replace('$Number$', 0))
+            audioSb && await asyncFetchAndAppend(ms, audioSb, audioUrl.replace('$Number$', 1))
+            videoSb && await asyncFetchAndAppend(ms, videoSb, videoUrl.replace('$Number$', 1))
+
+            video.ontimeupdate = function () {
+                // wait for video to play
+                if (video.currentTime >= 1.0) {
+                    video.ontimeupdate = null;
+                    video.onseeking = function () {
+                        video.onseeking = null;
+                        console.log("Seeking started -> pause() video");
+                        // 3) Pause the video in the middle of seeking
+                        video.pause();
+                        // 5) Check if video is paused after seeking
+                        video.onseeked = function () {
+                            console.log("Seeking finished -> check if video is paused");
+                            let timeAfterSeek = video.currentTime;
+                            video.onseeked = null;
+                            setTimeout(() => {
+                                if (video.currentTime > timeAfterSeek + 0.1) {
+                                    reportFail("Position moved forward after pause() - from " + timeAfterSeek + " to " + video.currentTime)
+                                } else {
+                                    reportPass("Video is paused after seeking");
+                                }
+                            }, 1000);
+                        }
+
+                        setTimeout(() => {
+                            // 4) Append data to complete seeking
+                            console.log("Append data to complete seeking");
+                            audioSb && asyncFetchAndAppend(ms, audioSb, audioUrl.replace('$Number$', 2))
+                            videoSb && asyncFetchAndAppend(ms, videoSb, videoUrl.replace('$Number$', 2))
+                        }, 500);
+                    }
+                    // 2) Seek to unbuffered position
+                    console.log("Seeking to unbuffered position");
+                    video.currentTime = 4.0;
+                }
+            }
+            video.muted = true; // mute video so playback can autostart
+            // 1) Start playing the video
+            video.play();
+        }
+    </script>
+</body>
+
+</html>
