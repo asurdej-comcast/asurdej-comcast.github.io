@@ -23,10 +23,14 @@ function _getIntParam(name, defValue = 0) {
 
 var _fail_timeout;
 
+var _reported = false;
 function reportResult(success, msg) {
   if (_fail_timeout) {
     resetFailTimeout();
   }
+  if (_reported) // result reported already
+    return;
+  _reported = true;
   document.body.style.backgroundColor = success ? "green" : "red";
   console.log("TEST " + (success ? "PASSED" : "FAILED") + " : " + msg);
 
