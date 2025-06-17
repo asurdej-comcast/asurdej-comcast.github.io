@@ -7,6 +7,8 @@
 // Test that performs a seek right at the start before the pipeline had the change to start the actual 
 // playback. The playback position returned shall not be reset to zero during this process
 
+// NOTE: Currently this test case fails because of SERXIONE-4065 and LLAMA-12282
+
 var audio;                  // player instance
 var targetSeekTime = 500.0; // seconds
 var seekStartDelay = 5000;  // mili-seconds

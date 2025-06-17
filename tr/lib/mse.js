@@ -127,3 +127,11 @@ async function asyncFetchAB(url, log=console.log) {
         xhr.send();
     });
 }
+
+async function asyncFetchAndAppend(ms, sourceBuffer, url) {
+    return new Promise(async (resolve) => {
+      let data = await asyncFetchAB(url);
+      await asyncAppendDataToSourceBuffer(ms, sourceBuffer, data);
+      resolve();
+    });
+  }

@@ -18,6 +18,13 @@
         }
 
         .tcinner {
+            text-align: left;
+            display: block;
+            width: 100%;
+        }
+
+        .tccaption {
+            text-align: center;
             display: block;
             width: 100%;
         }
@@ -38,7 +45,6 @@
             font-size: small;
             margin: 1px;
             padding: 1px;
-            text-align: left;
             overflow: hidden;
         }
 
@@ -72,47 +78,117 @@
         var baseTestUrl = window.location.href.replace("testRunner.html", "tests/");
         // var baseTestUrl = "http://10.42.0.1:1337/tests/";  // python -m SimpleHTTPServer 1337
         const TestsDescs = [
-            { ticket:"XIONE-12493", desc:"Progressive video - duration at EOS 1", url:"XIONE-12493_video_duration_progressive.html?url=../media/mov_bbb.mp4" },
-            { ticket:"XIONE-12493", desc:"Progressive video - duration at EOS 2", url:"XIONE-12493_video_duration_progressive.html?url=../media/itvx_dominos.mp4" },
-            { ticket:"XIONE-12493", desc:"Progressive video - duration at EOS 3", url:"XIONE-12493_video_duration_progressive.html?url=../media/itvx_cupra.mp4" },
+            { caption:"MSE" },
+
             { ticket:"RDK-41921", desc:"[MSE] Resume playback after pause and rate(0)", url:"RDK-41921_mse_pause_zeroRate_play.html" },
             { ticket:"RDK-41921", desc:"MSE pause during seek", url:"RDK-41921_mse_seek_pause.html" },
+            { ticket:"RDK-41921", desc:"MSE pause during seek to unbuffered", url:"RDK-41921_mse_seek_pause2.html" },
             { ticket:"RDK-42855", desc:"MSE set rete(0) during seek", url:"RDK-42855_mse_seek_zeroRate.html" },
+            { ticket:"RDK-42855", desc:"MSE set rete(0) during seek to unbuffered", url:"RDK-42855_mse_seek_zeroRate2.html" },
             { ticket:"RDK-42855", desc:"MSE resume after rate(0) and pause()", url:"RDK-42855_mse_zeroRate_pause_resume.html" },
             { ticket:"RDK-43828", desc:"MSE audioseek into buffered while playing", url:"RDK-43828_mse_audio_seek_into_buffered_while_playing.html" },
             { ticket:"RDK-43828", desc:"MSE audio seek into unbuffered while playing", url:"RDK-43828_mse_audio_seek_into_unbuffered_while_playing.html" },
             { ticket:"RDK-43828", desc:"MSE audio seek into unbuffered while seeking", url:"RDK-43828_mse_audio_seek_into_unbuffered_while_seeking.html" },
-            { ticket:"RDK-42816", desc:"Progressive - seek audio at start", url:"RDK-42816_progressive_seek_audio_at_start.html" },
-            { ticket:"RDK-42816", desc:"Progressive - audio positions progress", url:"RDK-42816_progressive_audio_positions_progress.html" },
-            { ticket:"RDK-42816", desc:"Progressive - audio seek during play", url:"RDK-42816_progressive_seek_audio_during_play.html" },
-            { ticket:"RDK-42816", desc:"Progressive - audio seek audio during pause", url:"RDK-42816_progressive_seek_audio_during_pause.html" },
-            { ticket:"RDK-40567", desc:"SpeechSynthesis support", url:"RDK-40567_speech_synthesis_support.html" },
-            { ticket:"RDK-40567", desc:"SpeechSynthesis error handling", url:"RDK-40567_speech_synthesis_error_handling.html" },
             { ticket:"LLAMA-12278", desc:"[MSE] Instant rate change while playing", url:"LLAMA-12278_mse_instant_rate_change_while_playing.html" },
             { ticket:"RDK-44838", desc:"[MSE] Instant rate change while playing and with rebuffering", url:"RDK-44838_mse_instant_rate_change_while_playing_and_with_rebuffering.html" },
             { ticket:"LLAMA-7401", desc:"[MSE] canplaythrough estimation on startup", url:"LLAMA-7401_mse_canplaythrough_estimation_on_startup.html" },
             { ticket:"LLAMA-7401", desc:"[MSE] canplaythrough estimation during playback", url:"LLAMA-7401_mse_canplaythrough_estimation_during_playback.html" },
             { ticket:"XIONE-13475", desc:"[MSE] Instant rate change before playing", url:"XIONE-13475_mse_rate_change_before_playing.html" },
-            { ticket:"RDK-43872", desc:"Web Audio support", url:"RDK-43872_web_audio_support.html" },
-            { ticket:"XIONE-13654", desc:"Canvas 2D painting while canvas is out of DOM tree", url:"XIONE-13654_canvas_2d_painting_out_of_DOM.html" },
-            { ticket:"RDKTV-27934", desc:"Ensure adaptive playback not supported DASH/HLS", url:"RDKTV-27934_dash_hls_adaptive.html" },
+            { ticket:"DELIA-65155", desc:"Rewind on eos without resetting MediaSource", url:"DELIA-65155_rewind_on_eos.html" },
+            { ticket:"DELIA-65155", desc:"Load content with 35.5k samples and verify that it plays", url:"DELIA-65155_too_many_samples.html" },
+            { ticket:"DELIA-65155", desc:"Load 20s of content and try to replace samples with & without remove", url:"DELIA-65155_mse_samples_replacement.html" },
+            { ticket:"RDKTV-30348", desc:"[MSE] EoS MediaSource without pushing data buffers", url:"RDKTV-30348_mse_early_eos.html" },
+            { ticket:"RDK-57771", desc:"[MSE] Abort() SourceBuffers and restart video", url:"RDK-57771_mse_abort_SB.html" },
 
-            // Optional tests:
+            { ticket:"RDKTV-52890", desc:"[MSE] Seek in READY without data a+v", url:"RDK-52890_mse_seek_in_ready_no_data.html" },
+            { ticket:"RDKTV-52890", desc:"[MSE] Seek in READY without data video only", url:"RDK-52890_mse_seek_in_ready_no_data.html?audio=0" },
+            // TODO: need to check this one as it fails sometimes when position is set before creating audio sink actually
+            { ticket:"RDKTV-52890", desc:"[MSE] Seek in READY without data audio only", url:"RDK-52890_mse_seek_in_ready_no_data.html?video=0", optional:true },
+
+            { ticket:"RDKTV-52890", desc:"[MSE] Seek in READY with flush a+v", url:"RDK-52890_mse_seek_in_ready_with_flush.html" },
+            { ticket:"RDKTV-52890", desc:"[MSE] Seek in READY with flush video only", url:"RDK-52890_mse_seek_in_ready_with_flush.html?audio=0" },
+            { ticket:"RDKTV-52890", desc:"[MSE] Seek in READY with flush audio only", url:"RDK-52890_mse_seek_in_ready_with_flush.html?video=0" },
+
+            { ticket:"RDK-54100", desc:"[MSE] Seek in READY on loadedmetadata event a+v", url:"RDK-54100_mse_seek_loadedmetadata.html", optional:true },
+            { ticket:"RDK-54100", desc:"[MSE] Seek in READY on loadedmetadata event video only", url:"RDK-54100_mse_seek_loadedmetadata.html?audio=0", optional:true },
+            { ticket:"RDK-54100", desc:"[MSE] Seek in READY on loadedmetadata event audio only", url:"RDK-54100_mse_seek_loadedmetadata.html?video=0", optional:true },
+
+            { ticket:"RDKTV-52890", desc:"[MSE] Seek in PAUSED state a+v", url:"RDK-52890_mse_seek_in_pause.html" },
+            { ticket:"RDKTV-52890", desc:"[MSE] Seek in PAUSED state video only", url:"RDK-52890_mse_seek_in_pause.html?audio=0" },
+            { ticket:"RDKTV-52890", desc:"[MSE] Seek in PAUSED state audio only", url:"RDK-52890_mse_seek_in_pause.html?video=0" },
+
+            { ticket:"RDKTV-52890", desc:"[MSE] Seek in PLAYING state a+v", url:"RDK-52890_mse_seek_in_playing.html" },
+            { ticket:"RDKTV-52890", desc:"[MSE] Seek in PLAYING state video only", url:"RDK-52890_mse_seek_in_playing.html?audio=0" },
+            { ticket:"RDKTV-52890", desc:"[MSE] Seek in PLAYING state audio only", url:"RDK-52890_mse_seek_in_playing.html?video=0" },
+
+            { ticket:"RDKTV-52890", desc:"[MSE] Fast seek in PLAYING state a+v", url:"RDK-52890_mse_fast_seek_in_playing.html" },
+            { ticket:"RDKTV-52890", desc:"[MSE] Fast seek in PLAYING state video only", url:"RDK-52890_mse_fast_seek_in_playing.html?audio=0" },
+            { ticket:"RDKTV-52890", desc:"[MSE] Fast seek in PLAYING state audio only", url:"RDK-52890_mse_fast_seek_in_playing.html?video=0" },
+
+            { ticket:"RDKTV-52890", desc:"[MSE] Fast seek in PAUSED state a+v", url:"RDK-52890_mse_fast_seek_in_paused.html" },
+            { ticket:"RDKTV-52890", desc:"[MSE] Fast seek in PAUSED state video only", url:"RDK-52890_mse_fast_seek_in_paused.html?audio=0" },
+            { ticket:"RDKTV-52890", desc:"[MSE] Fast seek in PAUSED state audio only", url:"RDK-52890_mse_fast_seek_in_paused.html?video=0" },
+
+
+            { ticket:"LLAMA-12496", desc:"[MSE] audio limit", url:"LLAMA-12496_mse_audio_limit.html", optional:true },
+            { ticket:"LLAMA-12496", desc:"[MSE] video limit", url:"LLAMA-12496_mse_video_limit.html", optional:true },
+
+            { ticket:"LLAMA-15256", desc:"[MSE] Single frame preroll", url:"LLAMA-15256_mse_av_single_frame_preroll.html", optional:true },
+
+            { ticket:"RDK-54606", desc:"[MSE] Append currently playing segment again audio only", url:"RDK-54606_hbbtv_append_playing_segment_again.html", optional:true },
+
+            { caption: "EME" },
+            // Default params for DELIA-65629_mse_eme_clear_encrypted_transition.html: "start" with "clear", "switch" after 2 segments, "stop" after 8 segments (4 transitions in total)
+            { ticket:"DELIA-65629", desc:"[EME] Clear->Encrypted transition Widevine", url:"DELIA-65629_mse_eme_clear_encrypted_transition.html?drm=widevine&start=clear" },
+            { ticket:"DELIA-65629", desc:"[EME] Encrypted->Clear transition Widevine", url:"DELIA-65629_mse_eme_clear_encrypted_transition.html?drm=widevine&start=encrypted" },
+            { ticket:"DELIA-65629", desc:"[EME] Clear->Encrypted transition PlayReady", url:"DELIA-65629_mse_eme_clear_encrypted_transition.html?drm=playready&start=clear" },
+            { ticket:"DELIA-65629", desc:"[EME] Encrypted->Clear transition PlayReady", url:"DELIA-65629_mse_eme_clear_encrypted_transition.html?drm=playready&start=encrypted" },
+
+            // Long running test: Widevine, start with clear, make transition after 10segments (40sec), loop segments after two transitions (20segments, 80sec), play for 4h (3600 segments), buffer 8seconds ahead current video time
+            // { ticket:"DELIA-65629", desc:"[EME] Long running Enc/Clear transitions", url:"DELIA-65629_mse_eme_clear_encrypted_transition.html?drm=widevine&start=clear&switch=10&loop=20&stop=3600&buffer=8" },
+
+            { caption:"Progressive" },
+
+            { ticket:"XIONE-12493", desc:"Progressive video - duration at EOS 1", url:"XIONE-12493_video_duration_progressive.html?url=../media/car_20130125_18.mp4" },
+            { ticket:"XIONE-12493", desc:"Progressive video - duration at EOS 2", url:"XIONE-12493_video_duration_progressive.html?url=../media/itvx_dominos.mp4" },
+            { ticket:"XIONE-12493", desc:"Progressive video - duration at EOS 3", url:"XIONE-12493_video_duration_progressive.html?url=../media/itvx_cupra.mp4" },
+            { ticket:"RDK-42816", desc:"Progressive - audio positions progress", url:"RDK-42816_progressive_audio_positions_progress.html" },
+            { ticket:"RDK-42816", desc:"Progressive - audio seek during play", url:"RDK-42816_progressive_seek_audio_during_play.html" },
+            { ticket:"RDK-42816", desc:"Progressive - audio seek audio during pause", url:"RDK-42816_progressive_seek_audio_during_pause.html" },
+            { ticket:"DELIA-59853", desc:"Check if video can be paused during seeking", url:"DELIA-59853_progressive_pause_during_seek.html" },
+
+            { ticket:"XIONE-12493", desc:"Progressive video (multi audio) - duration at EOS 1", url:"XIONE-12493_video_duration_progressive.html?url=../media/mov_bbb.mp4", optional:true },
+            { ticket:"RDK-42816", desc:"Progressive - seek audio at start", url:"RDK-42816_progressive_seek_audio_at_start.html", optional:true},
+            { ticket:"XIONE-13285", desc:"Progressive audio position queries", url:"XIONE-13285_progressive_audio_position_queries_mp3.html", optional:true },
+
+            { caption:"WebAudio/SpeachSynthesis" },
+
+            { ticket:"RDK-40567", desc:"SpeechSynthesis support", url:"RDK-40567_speech_synthesis_support.html" },
+            { ticket:"RDK-40567", desc:"SpeechSynthesis error handling", url:"RDK-40567_speech_synthesis_error_handling.html" },
+            { ticket:"RDK-43872", desc:"Web Audio support", url:"RDK-43872_web_audio_support.html" },
+
             { ticket:"RDK-40567", desc:"SpeechSynthesis Ok case", url:"RDK-40567_speech_synthesis_ok_case.html", optional:true },
             { ticket:"RDK-40567", desc:"SpeechSynthesis cancellation", url:"RDK-40567_speech_synthesis_cancelation.html", optional:true },
             { ticket:"RDK-40567", desc:"SpeechSynthesis invalid test", url:"RDK-40567_speech_synthesis_invalid_text.html", optional:true },
             { ticket:"RDK-40567", desc:"SpeechSynthesis empty text", url:"RDK-40567_speech_synthesis_empty_text.html", optional:true },
             { ticket:"RDK-40567", desc:"SpeechSynthesis pause and resume", url:"RDK-40567_speech_synthesis_pause_and_resume.html", optional:true },
-            { ticket:"LLAMA-12496", desc:"[MSE] audio limit", url:"LLAMA-12496_mse_audio_limit.html", optional:true },
-            { ticket:"LLAMA-12496", desc:"[MSE] video limit", url:"LLAMA-12496_mse_video_limit.html", optional:true },
-            { ticket:"XIONE-13285", desc:"Progressive audio position queries", url:"XIONE-13285_progressive_audio_position_queries_mp3.html", optional:true },
+
+            { caption:"Graphics" },
+
+            { ticket:"XIONE-13654", desc:"Canvas 2D painting while canvas is out of DOM tree", url:"XIONE-13654_canvas_2d_painting_out_of_DOM.html" },
+
+            { caption:"Other" },
+            { ticket:"RDKTV-27934", desc:"Ensure adaptive playback not supported DASH/HLS", url:"RDKTV-27934_dash_hls_adaptive.html" },
         ];
 
-        const kGlobalTestTimeout = 60000; // 60sec
+        var globalTestTimeout = _params["timeout"];
+        if (isNaN(globalTestTimeout))
+            globalTestTimeout = 60000; // 60sec
 
         var testCase;
         var running = false;
         var autoRun = false;
+        var autoGroupRun = false;
 
         var autostart = false;
         if (_params["autostart"])
@@ -138,9 +214,12 @@
                     currentColumn = createNewColumn();
                     currentElement = 1;
                 }
-
                 TestsDescs[i].id = i;
-                attachTestCase(TestsDescs[i], i, currentColumn);
+                if (TestsDescs[i].caption) {
+                    attachCaptionElement(TestsDescs[i], i, currentColumn);
+                } else {
+                    attachTestCase(TestsDescs[i], i, currentColumn);
+                }
             }
         }
 
@@ -149,6 +228,36 @@
             column.classList.add("column");
             document.getElementById("results").appendChild(column);
             return column;
+        }
+
+        function attachCaptionElement(testCase, id, parent) {
+            let tc = document.createElement("div");
+            tc.className = "testcase";
+            tc.classList.add("focusable");
+            tc.id = id;
+            testCase.div = tc;
+
+            let tcDesc = document.createElement("div");
+            tcDesc.innerHTML = ">>> " + testCase.caption + " <<<";
+            tcDesc.classList.add("tccaption");
+
+            let tcRes = document.createElement("div");
+            tcRes.innerHTML = "Click to run all";
+            tcRes.classList.add("tccaption");
+
+            tc.appendChild(tcDesc);
+            tc.appendChild(tcRes);
+
+            tc.onclick = function(e) {
+                let target = e.target;
+                if (target.classList.contains("tccaption"))
+                    target = target.parentElement;
+                let targetId = parseInt(target.id) + 1;
+                console.log("Start test case: ", target.id);
+                runTest(targetId, false, true);
+             };
+            parent.appendChild(tc);
+
         }
 
         function attachTestCase(testCase, id, parent) {
@@ -161,7 +270,7 @@
             testCase.div = tc;
 
             let tcDesc = document.createElement("div");
-            tcDesc.innerHTML = (id + 1) + ". " + (testCase.optional ? "optional " : "") +  testCase.ticket + " " + testCase.desc;
+            tcDesc.innerHTML = id + ". " + (testCase.optional ? "optional " : "") +  testCase.ticket + " " + testCase.desc;
             tcDesc.classList.add("tcinner");
 
             let tcRes = document.createElement("div");
@@ -197,7 +306,7 @@
             }
         }
 
-        function runTest(id, auto = false) {
+        function runTest(id, auto = false, autoGroup = false) {
             if (isNaN(parseInt(id))) {
                 console.log("invalid id");
                 return;
@@ -209,23 +318,29 @@
             running = true;
             if (auto)
                 autoRun = true;
+            if (autoGroup)
+                autoGroupRun = true;
             runTestCase(id);
         }
 
         function runAll() {
             console.log("Run all tests");
-            runTest(0, true);
+            runTest(0, true, false);
+        }
+
+        function allFinished() {
+            console.log("All tests finished!");
+            autoRun = false;
+            autoGroupRun = false;
+            running = false;
         }
 
         function testFinished(id) {
             ++id;
-            if (autoRun && id < TestsDescs.length) {
+            if ((autoRun || autoGroupRun) && id < TestsDescs.length)
                 runTestCase(id);
-            } else {
-                console.log("All tests finished!");
-                autoRun = false;
-                running = false;
-            }
+            else
+                allFinished();
         }
 
         function testEnded(id, success, message) {
@@ -255,11 +370,24 @@
         }
 
         function runTestCase(id) {
+            if (id >= TestsDescs.length) {
+                return allFinished();
+            }
+
+            if (TestsDescs[id].caption) {
+                if (autoGroupRun)
+                    return allFinished();
+
+                // just skip to next entry
+                runTestCase(id + 1);
+                return;
+            }
+
             let url = baseTestUrl + TestsDescs[id].url;
-            console.log("Starting test case " + id + " " + url + " with timeout " + kGlobalTestTimeout);
+            console.log("Starting test case " + id + " " + url + " with timeout " + globalTestTimeout);
             let currentTimeout = setTimeout(() => {
                 testEnded(id, false, "TIMEOUT");
-            }, kGlobalTestTimeout);
+            }, globalTestTimeout);
 
             testCase = startTest(url);
             if (!testCase) {

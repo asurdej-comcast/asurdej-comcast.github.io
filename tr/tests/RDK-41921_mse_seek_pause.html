@@ -26,37 +26,19 @@
       video.play();
     });
 
-
     function startTesting() {
       console.log("START TEST");
-      video.ontimeupdate = () => {
-        if (video.currentTime > 5) {
-          console.log("video reached 5sec");
-          resetFailTimeout();
-          video.ontimeupdate = null;
-
-          setTimeout(() => {
-            video.onpause = () => {
-              console.log("video paused");
-              resetFailTimeout();
-              var vidTimeAtPause = video.currentTime;
-              // make sure current time is also paused
-              setTimeout(() => {
-                if (video.currentTime == vidTimeAtPause) {
-                  reportPass("Video paused after a seek");
-                } else {
-                  reportFail("Video should be paused but currentTime is progressing");
-                }
-              }, 5000);
-            }
-            failTimeout(5, "Failed to pause video");
-            console.log("pause video");
-            video.pause();
-          }, 1000);
+      video.currentTime = 5;
+      setTimeout(()=>{video.pause();}, 5);
+      setTimeout(()=>{
+        var vidCurrTime = video.currentTime;
+        if (vidCurrTime < 6) {
+          reportPass("Video paused at " + vidCurrTime);
+        } else {
+          reportFail("Video position still progressing with playbackRate=0");
         }
-      };
-      failTimeout(10, "video didn't resume after seek");
-      video.currentTime = 3;
+
+      }, 3000);
     }
   </script>
 </body>

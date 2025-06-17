@@ -10,9 +10,7 @@
     }
 
     async function runTestCase() {
-        setTimeout(() => {
-	    reportFail("Test case timed out");
-        }, 40000);
+        failTimeout(40, "Test case timed out");
 
         var mediaElement = document.getElementById("video");
         var mediaSource = null;
@@ -34,6 +32,7 @@
 
         const desiredPlaybackRate = 2.0;
         const measurementPeriodSeconds = 10.0;
+        const measurementDelaySeconds = 1.0;
         const errorMargin = 0.35;
 
         mediaElement.playbackRate = desiredPlaybackRate;
@@ -51,6 +50,8 @@
         await asyncAppendDataToSourceBuffer(mediaSource, videoSourceBuffer, videoData, log);
         
         await new Promise((resolve) => { mediaElement.ontimeupdate = () => { resolve(); } });
+        // Wait for a second for video player to reach stable playback
+        await new Promise((resolve) => { setTimeout(() => { resolve(); }, measurementDelaySeconds * 1000); });
 
         log("measuring currentTime progression for " + measurementPeriodSeconds + "s...");
         var begin = mediaElement.currentTime;

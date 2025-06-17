@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset='UTF-8' />
+    <meta http-equiv='Cache-Control' content='no-cache, no-store, must-revalidate' />
+    <meta http-equiv='Pragma' content='no-cache' />
+    <meta http-equiv='Expires' content='0' />
+    <title>EME test clear - encrypted transitions</title>
+    <style>
+        video {
+            width: 50%;
+            height: 50%;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: white;
+            overflow: hidden;
+        }
+    </style>
+    <script src="../lib/utils.js"></script>
+    <script src="../lib/mse.js"></script>
+</head>
+
+<body>
+    <script type='text/javascript'>
+        // The content here is a mix of clear and encrypted videos from:
+        // https://media.axprod.net/TestVectors/v7-Clear/Manifest.mpd
+        // https://media.axprod.net/TestVectors/v7-MultiDRM-SingleKey/Manifest.mpd
+        var headers = {
+            'X-AxDRM-Message': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ2ZXJzaW9uIjoxLCJjb21fa2V5X2lkIjoiYjMzNjRlYjUtNTFmNi00YWUzLThjOTgtMzNjZWQ1ZTMxYzc4IiwibWVzc2FnZSI6eyJ0eXBlIjoiZW50aXRsZW1lbnRfbWVzc2FnZSIsImtleXMiOlt7ImlkIjoiOWViNDA1MGQtZTQ0Yi00ODAyLTkzMmUtMjdkNzUwODNlMjY2IiwiZW5jcnlwdGVkX2tleSI6ImxLM09qSExZVzI0Y3Iya3RSNzRmbnc9PSJ9XX19.4lWwW46k-oWcah8oN18LPj5OLS5ZU-_AQv7fe0JhNjA'
+        }
+
+        const DRMs = {
+            widevine: {
+                pssh: 'AAAANHBzc2gAAAAA7e+LqXnWSs6jyCfc1R0h7QAAABQIARIQnrQFDeRLSAKTLifXUIPiZg==',
+                licenseUrl: 'https://drm-widevine-licensing.axtest.net/AcquireLicense',
+                keySystem: 'com.widevine.alpha',
+            },
+            playready: {
+                pssh: 'AAAB5HBzc2gAAAAAmgTweZhAQoarkuZb4IhflQAAAcTEAQAAAQABALoBPABXAFIATQBIAEUAQQBEAEUAUgAgAHgAbQBsAG4AcwA9ACIAaAB0AHQAcAA6AC8ALwBzAGMAaABlAG0AYQBzAC4AbQBpAGMAcgBvAHMAbwBmAHQALgBjAG8AbQAvAEQAUgBNAC8AMgAwADAANwAvADAAMwAvAFAAbABhAHkAUgBlAGEAZAB5AEgAZQBhAGQAZQByACIAIAB2AGUAcgBzAGkAbwBuAD0AIgA0AC4AMAAuADAALgAwACIAPgA8AEQAQQBUAEEAPgA8AFAAUgBPAFQARQBDAFQASQBOAEYATwA+ADwASwBFAFkATABFAE4APgAxADYAPAAvAEsARQBZAEwARQBOAD4APABBAEwARwBJAEQAPgBBAEUAUwBDAFQAUgA8AC8AQQBMAEcASQBEAD4APAAvAFAAUgBPAFQARQBDAFQASQBOAEYATwA+ADwASwBJAEQAPgBEAFEAVwAwAG4AawB2AGsAQQBrAGkAVABMAGkAZgBYAFUASQBQAGkAWgBnAD0APQA8AC8ASwBJAEQAPgA8AC8ARABBAFQAQQA+ADwALwBXAFIATQBIAEUAQQBEAEUAUgA+AA==',
+                licenseUrl: 'https://drm-playready-licensing.axtest.net/AcquireLicense',
+                keySystem: 'com.microsoft.playready',
+            }
+        }
+
+        const STREAMS = {
+            video : {
+                h264: {
+                    288 : { id: "1", codec: "avc1.64001f"},
+                    360 : { id: "2", codec: "avc1.64001f"},
+                    480 : { id: "3", codec: "avc1.640028"},
+                    720 : { id: "4", codec: "avc1.640032"},
+                    1080: { id: "5", codec: "avc1.640033"},
+                    1440: { id: "6", codec: "avc1.640034"},
+                    2160: { id: "7", codec: "avc1.640034"},
+                },
+                h265: {
+                    288 : { id: "8",  codec: "hev1.2.4.L63.90"},
+                    360 : { id: "9",  codec: "hev1.2.4.L63.90"},
+                    480 : { id: "10", codec: "hev1.2.4.L90.90"},
+                    720 : { id: "11", codec: "hev1.2.4.L93.90"},
+                    1080: { id: "12", codec: "hev1.2.4.L120.90"},
+                    1440: { id: "13", codec: "hev1.2.4.L150.90"},
+                    2160: { id: "14", codec: "hev1.2.4.L150.90"},
+                }
+            },
+            audio : {
+                48000: {id: "15", codec: "mp4a.40.29"},
+            }
+        }
+
+        // SUPPORTED PARAMS:
+        //
+        // "drm" -> type of DRM system - "widevine" or "playready"
+        // "res" -> requested resolution, supported 288, 360, 480, 720, 1080, 1440, 2160
+        // "codec" -> codec type - "h264" or "h265"
+        // "start" -> start with clear or encrypted playback ["clear", "encrypted"]
+        // "switch" -> number of segments that video will switch clear/encrypted after
+        // "buffer" -> number of seconds ahead video.currentTime that are required in SourceBuffer
+        //             once video.currentTime will approach buffer end, next segment will be fetched
+        // "stop" -> total segments to play before pushing EOS
+        // "loop" -> number of segments that video will be looped after. Source buffers will set timestampOffset
+        //           and data fetching will start from the begining (keeping video time constantly increasing)
+        // "audio=0" -> disable audio and handle video only
+
+        var DRM = DRMs[_getStringParam("drm", "widevine").toLowerCase()];
+        if (!DRM) {
+            let message = "Unsupported DRM system provided in 'drm' param";
+            reportFail(message)
+            throw message
+        }
+        console.log("DRM: ", DRM);
+
+        const startWith = _getStringParam("start", "clear");
+        if (startWith !== "clear" && startWith !== "encrypted") {
+            reportFail("Invalid 'startWith' param");
+            throw ""
+        }
+        const clearEncSwithAfterSegments = _getIntParam("switch", 2)
+        const stopAtSegment = _getIntParam("stop", 8)
+        const bufferAhead = _getIntParam("buffer", 2);
+        const loopAtSegment = _getIntParam("loop", 0);
+
+        const audioStream = STREAMS.audio["48000"]
+        const videoCodec = STREAMS.video[_getStringParam("codec", "h264").toLowerCase()]
+        if (!videoCodec) {
+            reportFail("Invalid video codec selected. Check 'codec' URL param")
+            throw "Invalid video codec selected. Check 'codec' URL param"
+        }
+        const videoStream = videoCodec[_getStringParam("res", "720")]
+        if (!videoStream) {
+            reportFail("Invalid video stream selected. Check 'res' URL param")
+            throw "Invalid video stream selected. Check 'res' URL param"
+        }
+
+        console.log("switch: " + clearEncSwithAfterSegments)
+        console.log("stop: " + stopAtSegment)
+        console.log("buffer: " + bufferAhead)
+        console.log("loop: " + loopAtSegment)
+
+        const segmentDuration = 4; //sec
+        const maxLoopTime = loopAtSegment * segmentDuration;
+        const maxTotalTime = stopAtSegment * segmentDuration;
+
+        const clearBaseURL = 'https://media.axprod.net/TestVectors/v7-Clear/'
+        const protectedBaseURL = 'https://media.axprod.net/TestVectors/v7-MultiDRM-SingleKey/'
+        const initSegmentTemplate = "$RepresentationID$/init.mp4"
+        const segmentTemplate = "$RepresentationID$/$Number$.m4s"
+
+        function getMediaURL(encrypted, id, num) {
+            if (id < 0 || num < 0)
+                return undefined
+
+            let baseURL = (encrypted ? protectedBaseURL : clearBaseURL);
+            if (num == 0) {
+                return baseURL + initSegmentTemplate.replace("$RepresentationID$", id)
+            }
+            return baseURL + segmentTemplate.replace("$RepresentationID$", id).replace('$Number$', num.toString().padStart(4, "0"));
+        }
+
+        const videoMimeType = 'video/mp4; codecs="' + videoStream.codec + '"'
+        const audioMimeType = 'audio/mp4; codecs="' + audioStream.codec + '"'
+        console.log("Audio type: " + audioMimeType + ", video type: " + videoMimeType);
+
+        var video, ms, audioSb, videoSb;
+        var appending = false;
+
+        document.addEventListener('DOMContentLoaded', function () {
+            setTimeout(startApp, 0)
+        })
+
+        async function startApp() {
+            video = document.createElement('video')
+            document.body.appendChild(video)
+
+            video.addEventListener('error', function (e) {
+                reportFail('Test failed. Got an error: ' + video.error.code + ', ' + video.error.message)
+            })
+
+            video.addEventListener('ended', function (e) {
+                reportPass("Video correctly played till the end");
+            })
+
+            // first couple of seconds are missing (in video stream I think) - ?edit list?
+            video.addEventListener('loadedmetadata', function onLoadedMetadata(event) {
+                video.removeEventListener('loadedmetadata', onLoadedMetadata)
+                video.currentTime = 2
+            })
+
+            // pssh is not included in mp4 so 'encrypted' event is not emitted
+            // Instead we have PSSH hardcoded and license will be requested on first encrypted segment (audio or video)
+            //  video.addEventListener('encrypted', async (event) =>  {
+            //     setupEME(event.initDataType, event.initData);
+            // });
+
+            video.oncanplay = () => {
+                video.oncanplay = null;
+                video.play();
+            }
+
+            ms = await asyncPrepareMediaSource(video);
+            if (_params["audio"] != 0) {
+                audioSb = await asyncPrepareSourceBuffer(ms, audioMimeType)
+            }
+
+            videoSb = await asyncPrepareSourceBuffer(ms, videoMimeType)
+            updateAppendWindowEnd()
+            resetValues()
+            startDataAppend();
+        }
+
+        function updateAppendWindowEnd() {
+            var updateEndForSb = (sb) => {
+                if (sb) {
+                    if (maxLoopTime) {
+                        if (sb.appendWindowEnd === Infinity) {
+                            sb.appendWindowEnd = maxLoopTime
+                        } else
+                            sb.appendWindowEnd += maxLoopTime
+                    }
+                    if (sb.appendWindowEnd > maxTotalTime)
+                        sb.appendWindowEnd = maxTotalTime;
+
+                    console.log("appendWindowEnd set to : " + sb.appendWindowEnd);
+                }
+            }
+            updateEndForSb(audioSb);
+            updateEndForSb(videoSb);
+        }
+
+        function startDataAppend() {
+            video.ontimeupdate = async () => {
+                appendDataIfNeeded();
+            }
+            appendDataIfNeeded();
+        }
+
+        async function stopDataAppend() {
+            console.log("Stop data append -> mark EOS")
+            video.ontimeupdate = null;
+            // append one more audio segment as audio segments are slightly shorter than video
+            audioSb && await checkAudioSb(true)
+            ms.endOfStream();
+        }
+
+        async function appendDataIfNeeded() {
+            if (appending) return;
+
+            appending = true;
+            audioSb && await checkAudioSb()
+            videoSb && await checkVideoSb()
+            appending = false;
+        }
+
+        async function loopData() {
+            console.log("Loop data, shirt buffers timestamps and append data from the beginning")
+            if (!loopAtSegment)
+                throw "Loop param is not set"
+
+            audioSb && await checkAudioSb(true)
+
+            if (videoSb)
+                videoSb.timestampOffset = (videoSb.timestampOffset ? videoSb.timestampOffset : 0) + maxLoopTime;
+
+            if (audioSb)
+                audioSb.timestampOffset = (audioSb.timestampOffset ? audioSb.timestampOffset : 0) + maxLoopTime;
+
+            updateAppendWindowEnd()
+            resetValues()
+        }
+
+        function needsMoreData(sb) {
+            if (sb.buffered.length == 0)
+                return true;
+
+            let bufferEnd = sb.buffered.end(sb.buffered.length - 1)
+            if (bufferEnd < video.currentTime + bufferAhead)
+                return true;
+            return false;
+        }
+
+        var emeDone = 0;
+        var totalVideoIdx = 1
+
+        var currentAudioIdx;
+        var audioInitDone;
+        var currentVideoIdx;
+        var videoInitDone;
+        var encrypted;
+        var switchAfter;
+
+        function resetValues() {
+            currentAudioIdx = 1;
+            audioInitDone = 0;
+            currentVideoIdx = 1;
+            videoInitDone = 0;
+            encrypted = (startWith == "encrypted");
+            switchAfter = clearEncSwithAfterSegments;
+        }
+
+        async function checkAudioSb(force = 0) {
+            if (!needsMoreData(audioSb) && !force)
+                return
+            console.log("Video time: " + video.currentTime + "Need next audio segment: " + currentAudioIdx);
+
+            if (!audioInitDone) {
+                if (encrypted && !emeDone) {
+                    setupEME('cenc', base64ToBytes(DRM.pssh))
+                    emeDone = true;
+                }
+                await asyncFetchAndAppend(ms, audioSb, getMediaURL(encrypted, audioStream.id, 0))
+                audioInitDone = true;
+            }
+
+            await asyncFetchAndAppend(ms, audioSb, getMediaURL(encrypted, audioStream.id, currentAudioIdx));
+            ++currentAudioIdx
+        }
+
+        async function checkVideoSb() {
+            if (!needsMoreData(videoSb))
+                return
+            console.log("Video time: " + video.currentTime + "Need next video segment: " + currentVideoIdx + ", total: " + totalVideoIdx)
+
+            if (totalVideoIdx > stopAtSegment) {
+                await stopDataAppend()
+                return
+            }
+
+            if (loopAtSegment && currentVideoIdx > loopAtSegment) {
+                await loopData()
+                return
+            }
+
+            if (currentVideoIdx > switchAfter) {
+                encrypted = !encrypted
+                videoInitDone = false
+                audioInitDone = false
+                switchAfter += clearEncSwithAfterSegments
+            }
+
+            if (!videoInitDone) {
+                if (encrypted && !emeDone) {
+                    setupEME('cenc', base64ToBytes(DRM.pssh))
+                    emeDone = true;
+                }
+                await asyncFetchAndAppend(ms, videoSb, getMediaURL(encrypted, videoStream.id, 0))
+                videoInitDone = true;
+            }
+
+            await asyncFetchAndAppend(ms, videoSb, getMediaURL(encrypted, videoStream.id, currentVideoIdx))
+            ++currentVideoIdx
+            ++totalVideoIdx;
+        }
+
+        async function setupEME(initDataType, initData) {
+            console.log("Setup EME");
+            try {
+                var supportedConfigurations = [{
+                    initDataTypes: ['cenc'],
+                    videoCapabilities: [
+                        { contentType: videoMimeType },
+                    ]
+                }]
+
+                // Request a MediaKeySession
+                const mediaKeySystemAccess = await navigator.requestMediaKeySystemAccess(DRM.keySystem, supportedConfigurations);
+                const mediaKeys = await mediaKeySystemAccess.createMediaKeys();
+
+                // Attach the media keys to the video element
+                await video.setMediaKeys(mediaKeys);
+
+                // Create a new session for the key
+                const session = mediaKeys.createSession();
+
+                session.addEventListener('message', async (event) => {
+                    console.log('Session message event:', event);
+
+                    // Send the license request to the license server
+                    const licenseResponse = await fetch(DRM.licenseUrl, {
+                        method: 'POST',
+                        body: event.message, // Contains the license request
+                        headers: headers
+                    });
+
+                    const license = await licenseResponse.arrayBuffer();
+
+                    // Update the session with the license (decryption key)
+                    session.update(license);
+                });
+
+                // Initialize the session with the initData
+                session.generateRequest(initDataType, initData);
+
+            } catch (error) {
+                console.error('Error handling encrypted event:', error);
+                reportFail("Error handling encrypted event: " + error.message)
+            }
+        }
+
+        function base64ToBytes(base64) {
+            const binString = atob(base64)
+            return Uint8Array.from(binString, (m) => m.codePointAt(0))
+        }
+    </script>
+</body>
+
+</html>
