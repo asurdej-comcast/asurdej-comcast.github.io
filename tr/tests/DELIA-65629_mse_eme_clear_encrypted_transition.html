@@ -29,6 +29,7 @@
         // The content here is a mix of clear and encrypted videos from:
         // https://media.axprod.net/TestVectors/v7-Clear/Manifest.mpd
         // https://media.axprod.net/TestVectors/v7-MultiDRM-SingleKey/Manifest.mpd
+        // https://media.axprod.net/TestVectors/v7-MultiDRM-SingleKey/Manifest_ClearKey.mpd
         var headers = {
             'X-AxDRM-Message': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ2ZXJzaW9uIjoxLCJjb21fa2V5X2lkIjoiYjMzNjRlYjUtNTFmNi00YWUzLThjOTgtMzNjZWQ1ZTMxYzc4IiwibWVzc2FnZSI6eyJ0eXBlIjoiZW50aXRsZW1lbnRfbWVzc2FnZSIsImtleXMiOlt7ImlkIjoiOWViNDA1MGQtZTQ0Yi00ODAyLTkzMmUtMjdkNzUwODNlMjY2IiwiZW5jcnlwdGVkX2tleSI6ImxLM09qSExZVzI0Y3Iya3RSNzRmbnc9PSJ9XX19.4lWwW46k-oWcah8oN18LPj5OLS5ZU-_AQv7fe0JhNjA'
         }
@@ -38,11 +39,27 @@
                 pssh: 'AAAANHBzc2gAAAAA7e+LqXnWSs6jyCfc1R0h7QAAABQIARIQnrQFDeRLSAKTLifXUIPiZg==',
                 licenseUrl: 'https://drm-widevine-licensing.axtest.net/AcquireLicense',
                 keySystem: 'com.widevine.alpha',
+                initDataType: 'cenc',
             },
             playready: {
                 pssh: 'AAAB5HBzc2gAAAAAmgTweZhAQoarkuZb4IhflQAAAcTEAQAAAQABALoBPABXAFIATQBIAEUAQQBEAEUAUgAgAHgAbQBsAG4AcwA9ACIAaAB0AHQAcAA6AC8ALwBzAGMAaABlAG0AYQBzAC4AbQBpAGMAcgBvAHMAbwBmAHQALgBjAG8AbQAvAEQAUgBNAC8AMgAwADAANwAvADAAMwAvAFAAbABhAHkAUgBlAGEAZAB5AEgAZQBhAGQAZQByACIAIAB2AGUAcgBzAGkAbwBuAD0AIgA0AC4AMAAuADAALgAwACIAPgA8AEQAQQBUAEEAPgA8AFAAUgBPAFQARQBDAFQASQBOAEYATwA+ADwASwBFAFkATABFAE4APgAxADYAPAAvAEsARQBZAEwARQBOAD4APABBAEwARwBJAEQAPgBBAEUAUwBDAFQAUgA8AC8AQQBMAEcASQBEAD4APAAvAFAAUgBPAFQARQBDAFQASQBOAEYATwA+ADwASwBJAEQAPgBEAFEAVwAwAG4AawB2AGsAQQBrAGkAVABMAGkAZgBYAFUASQBQAGkAWgBnAD0APQA8AC8ASwBJAEQAPgA8AC8ARABBAFQAQQA+ADwALwBXAFIATQBIAEUAQQBEAEUAUgA+AA==',
                 licenseUrl: 'https://drm-playready-licensing.axtest.net/AcquireLicense',
                 keySystem: 'com.microsoft.playready',
+                initDataType: 'cenc',
+            },
+            clearkey: {
+                pssh: 'eyJraWRzIjpbIm5yUUZEZVJMU0FLVExpZlhVSVBpWmciXX0=', // '{"kids":["nrQFDeRLSAKTLifXUIPiZg"]}'
+                // licenseUrl: 'https://drm-clearkey-testvectors.axtest.net/AcquireLicense',
+                keySystem: 'org.w3.clearkey',
+                initDataType: 'keyids',
+                message: JSON.stringify({
+                    keys: [{
+                        kty: "oct",
+                        alg: "A128KW",
+                        kid: "nrQFDeRLSAKTLifXUIPiZg",
+                        k:   "FmY0xnWCPCNaSpRG-tUuTQ"
+                    }]
+                })
             }
         }
 
@@ -288,7 +305,7 @@
 
             if (!audioInitDone) {
                 if (encrypted && !emeDone) {
-                    setupEME('cenc', base64ToBytes(DRM.pssh))
+                    setupEME(DRM.initDataType, base64ToBytes(DRM.pssh))
                     emeDone = true;
                 }
                 await asyncFetchAndAppend(ms, audioSb, getMediaURL(encrypted, audioStream.id, 0))
@@ -323,7 +340,7 @@
 
             if (!videoInitDone) {
                 if (encrypted && !emeDone) {
-                    setupEME('cenc', base64ToBytes(DRM.pssh))
+                    setupEME(DRM.initDataType, base64ToBytes(DRM.pssh))
                     emeDone = true;
                 }
                 await asyncFetchAndAppend(ms, videoSb, getMediaURL(encrypted, videoStream.id, 0))
@@ -356,7 +373,14 @@
                 const session = mediaKeys.createSession();
 
                 session.addEventListener('message', async (event) => {
-                    console.log('Session message event:', event);
+                    console.log('Session message event:', event.messageType, event.message);
+
+                    if (DRM.message) {
+                        // Use the provided license message if available
+                        console.log("Using provided license message: ", DRM.message);
+                        session.update(new TextEncoder().encode(DRM.message));
+                        return;
+                    }
 
                     // Send the license request to the license server
                     const licenseResponse = await fetch(DRM.licenseUrl, {
