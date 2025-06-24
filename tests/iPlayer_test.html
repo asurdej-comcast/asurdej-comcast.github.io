@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Bitmap texture</title>
+  <style>
+    .composited-image {
+      width: 400px;
+      height: 300px;
+      transform: scale(1.01); /* triggers compositing */
+      will-change: transform; /* tell webkit to keep this always composited */
+      transition: transform 5s ease-in-out;
+    }
+  </style>
+</head>
+<body>
+  <img id="testImage" class="composited-image" src="https://interactive-tv.files.bbci.co.uk/tv-client-iplayer-splash/assets/609dc1a2.jpg" alt="Trigger Compositing">
+</body>
+</html>
+
