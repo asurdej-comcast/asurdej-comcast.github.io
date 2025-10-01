@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <script src="../lib/utils.js"></script>
+    <script src="../lib/mse.js"></script>
+</head>
+<script type="text/javascript">
+    var videoUrlInit = 'https://media.axprod.net/TestVectors/v7-Clear/2/init.mp4'
+    var videoUrl = 'https://media.axprod.net/TestVectors/v7-Clear/2/$Number$.m4s'
+    var audioUrlInit = 'https://media.axprod.net/TestVectors/v7-Clear/15/init.mp4'
+    var audioUrl = 'https://media.axprod.net/TestVectors/v7-Clear/15/$Number$.m4s'
+
+    var video = null;
+    var mediaSource = null;
+    var audioSB = null;
+    var videoSB = null;
+    var data = null;
+    var video = null;
+    var onScreenLog = null;
+    var indexStart = 1;
+    var indexEnd = 5;
+    var state = 'init';
+
+    function log(message) {
+        console.log(message);
+        var msg = onScreenLog.innerHTML.split("<br>");
+        if (msg.length >= 54)
+            msg.splice(0, msg.length - 53);
+        msg.push(message);
+        onScreenLog.innerHTML = msg.join("<br>");
+        return message;
+    }
+
+    function cleanup() {
+        if (videoSB)
+            mediaSource.removeSourceBuffer(videoSB);
+        if (audioSB)
+            mediaSource.removeSourceBuffer(audioSB);
+        videoSB = null;
+        audioSB = null;
+        mediaSource = null;
+        data = null;
+        video.removeAttribute('src');
+        video.load();
+        video.remove();
+        video = null;
+    }
+
+    function zeroFill(value, length=4) {
+        var s = '' + value;
+        while(s.length < length)
+            s = '0' + s;
+        return s;
+    }
+
+    function checkBuffered(sb, begin, end) {
+        var ret = [];
+        for (var i = 0; i < sb.buffered.length; ++i) {
+            var range = { s: sb.buffered.start(i), e: sb.buffered.end(i) };
+            if (((begin >= range.s) && (begin <= range.e)) || 
+                ((end >= range.s) && (end <= range.e))) {
+                ret.push({s:Math.max(begin, range.s), e:Math.min(end, range.e)});
+            }
+        }
+        return ret;
+    }
+
+    function checkInBuffer(sb, begin, end) {
+        var ret = checkBuffered(sb, begin, end);
+        return (ret.length == 1) && (ret[0].s == begin) && (ret[0].e == end);
+    }
+
+    function checkOutBuffer(sb, begin, end) {
+        var ret = checkBuffered(sb, begin, end);
+        return (ret.length == 0);
+    }
+
+    async function runTestCase() {
+        video = document.getElementById("video");
+        onScreenLog = document.getElementById("console");
+
+        log("START TEST");
+
+        mediaSource = await asyncPrepareMediaSource(video, 20, log);
+        videoSB = await asyncPrepareSourceBuffer(mediaSource, "video/mp4", null, log);
+        audioSB = await asyncPrepareSourceBuffer(mediaSource, "audio/mp4", null, log);
+
+        data = await asyncFetchAB(videoUrlInit);
+        await asyncAppendDataToSourceBuffer(mediaSource, videoSB, data, log);
+
+        data = await asyncFetchAB(audioUrlInit);
+        await asyncAppendDataToSourceBuffer(mediaSource, audioSB, data, log);
+
+        for (var idx = indexStart; idx <= indexEnd; ++idx) {
+            try {
+                data = await asyncFetchAB(videoUrl.replace("$Number$", zeroFill(idx)));
+                await asyncAppendDataToSourceBuffer(mediaSource, videoSB, data, log);
+                data = await asyncFetchAB(audioUrl.replace("$Number$", zeroFill(idx)));
+                await asyncAppendDataToSourceBuffer(mediaSource, audioSB, data, log);
+            } catch(e) {
+                reportFail("SourceBuffer did not load enough samples");
+                cleanup(); return;
+            }
+        }
+
+        mediaSource.endOfStream();
+
+        video.ontimeupdate = async () => {
+            if (state === 'init') {
+                if (video.currentTime > 1) {
+                    resetFailTimeout();
+                    failTimeout(15, "Video did not reach 10s currentTime in 15 sec");
+                    state = 'overwrite';
+                }
+            } else if (state === 'overwrite') {
+                if (video.currentTime > 2 ) {
+                    state = 'remove';
+                    try {
+                        data = await asyncFetchAB(videoUrl.replace("$Number$", zeroFill(2)));
+                        await asyncAppendDataToSourceBuffer(mediaSource, videoSB, data, log);
+                        data = await asyncFetchAB(audioUrl.replace("$Number$", zeroFill(2)));
+                        await asyncAppendDataToSourceBuffer(mediaSource, audioSB, data, log);
+                        if (!checkInBuffer(videoSB, 0, 19.8) || !checkInBuffer(audioSB, 0, 19.8)) {
+                            resetFailTimeout();
+                            reportFail("SourceBuffer Unable to evict frames implicitely");
+                            cleanup(); return;
+                        }
+                    } catch(e) {
+                        resetFailTimeout();
+                        reportFail("SourceBuffer failed to overwrite samples");
+                        cleanup(); return;
+                    }
+                    log('overwrite');
+                }
+            } else if (state === 'remove') {
+                if (video.currentTime > 4) {
+                    state = 'append';
+                    try {
+                        await asyncRemoveDataRangeFromSourceBuffer(mediaSource, videoSB, 8, 11, log);
+                        await asyncRemoveDataRangeFromSourceBuffer(mediaSource, audioSB, 8, 11, log);
+                        if (!checkOutBuffer(videoSB, 8, 11) || !checkOutBuffer(audioSB, 8, 11)) {
+                            resetFailTimeout();
+                            reportFail("SourceBuffer Unable to evict frames explicitely");
+                            cleanup(); return;
+                        }
+                        data = await asyncFetchAB(videoUrl.replace("$Number$", zeroFill(3)));
+                        await asyncAppendDataToSourceBuffer(mediaSource, videoSB, data, log);
+                        data = await asyncFetchAB(audioUrl.replace("$Number$", zeroFill(3)));
+                        await asyncAppendDataToSourceBuffer(mediaSource, audioSB, data, log);
+                        if (!checkInBuffer(videoSB, 0, 19.8) || !checkInBuffer(audioSB, 0, 19.8)) {
+                            resetFailTimeout();
+                            reportFail("SourceBuffer Unable to insert frames after removal");
+                            cleanup(); return;
+                        }
+                    } catch(e) {
+                        resetFailTimeout();
+                        reportFail("SourceBuffer failed to remove & append time range");
+                        cleanup(); return;
+                    }
+                    log('remove and append');
+                }
+            } else if (state === 'append') {
+                if (video.currentTime > 12) {
+                    state = 'done';
+                    resetFailTimeout();
+                    reportPass("SourceBuffer correctly reloaded samples");
+                    cleanup();
+                }
+            }
+        };
+        failTimeout(10, "Video did not reach 1s currentTime in 10 sec");
+        video.play();
+    }
+</script>
+<body onload="runTestCase()">
+    <video id="video" width="320" height="180" controls></video>
+    <div id="console" style="font-size: 11px"></div>
+</body>
+</html>

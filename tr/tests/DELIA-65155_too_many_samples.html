@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <script src="../lib/utils.js"></script>
+    <script src="../lib/mse.js"></script>
+</head>
+<script type="text/javascript">
+    // test stream generated with:
+    //
+    // ffmpeg -loop 1 -t 22000 -i dot.png -vf setsar=1,format=yuv420p -r 24 -c:v libx264 -video_track_timescale 12288 -profile:v main -f dash -seg_duration 2000 -single_file 1 -preset slow -crf 18 -pix_fmt yuv420p -movflags +faststart out3.mp4
+    //
+    // where dot is 320x180 image
+
+    var videoUrl = 'https://cpetestutility.stb.r53.xcal.tv/CPETool/media/TestStreams/too_many_samples.mp4';
+    console.log("MSE video url: " + videoUrl);
+
+    var video = null;
+    var mediaSource = null;
+    var sourceBuffer = null;
+    var data = null;
+    var video = null;
+    var onScreenLog = null;
+
+    function log(message) {
+        console.log(message);
+        var msg = onScreenLog.innerHTML.split("<br>");
+        if (msg.length >= 54)
+            msg.splice(0, msg.length - 53);
+        msg.push(message);
+        onScreenLog.innerHTML = msg.join("<br>");
+        return message;
+    }
+
+    function cleanup() {
+        sourceBuffer.remove(0,22000);
+        if (sourceBuffer)
+            mediaSource.removeSourceBuffer(sourceBuffer);
+        sourceBuffer = null;
+        mediaSource = null;
+        data = null;
+        video.removeAttribute('src');
+        video.load();
+        video.remove();
+        video = null;
+    }
+
+    async function runTestCase() {
+        video = document.getElementById("video");
+        onScreenLog = document.getElementById("console");
+
+        log("START TEST");
+
+        mediaSource = await asyncPrepareMediaSource(video, 22000, log);
+        sourceBuffer = await asyncPrepareSourceBuffer(mediaSource, "video/mp4", null, log);
+        data = await asyncFetchAB(videoUrl);
+
+        var chunkSize = 512*1024;
+
+        for (var position = 0; position < data.byteLength; position += chunkSize) {
+            try {
+                await asyncAppendDataToSourceBuffer(mediaSource, sourceBuffer,data.slice(position, position + chunkSize), log);
+            } catch(e) {
+                reportFail("SourceBuffer did not load enough samples");
+            }
+        }
+
+        video.ontimeupdate = () => {
+            if (video.currentTime > 1) {
+                resetFailTimeout();
+                video.ontimeupdate = null;
+                var startTime = Date.now();
+                setTimeout(() => {
+                    if (Date.now() - startTime < 5100) {
+                        reportPass("SourceBuffer correctly loaded and unloaded 550k samples");
+                    } else {
+                        reportFail("Player did not close in time");
+                    }
+                }, 5000);
+                log("Cleanup start");
+                cleanup();
+                log("Cleanup finish, " + (Date.now() - startTime) + "ms");
+            }
+        };
+        failTimeout(10, "Video did not reach 1s currentTime in 10 sec");
+        video.play();
+    }
+</script>
+<body onload="runTestCase()">
+    <video id="video" controls></video>
+    <div id="console" style="font-size: 11px"></div>
+</body>
+</html>

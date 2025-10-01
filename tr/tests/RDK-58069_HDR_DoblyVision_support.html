@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html>
+<head>
+<script src="../lib/utils.js"></script>
+<script type="text/javascript">
+
+async function runTests() {
+    let isHEVCSupported = MediaSource.isTypeSupported('video/mp4; codecs="hev1.1.6.L93.B0"') && MediaSource.isTypeSupported('video/mp4; codecs="hvc1.1.6.L93.B0"');
+    if (!isHEVCSupported)
+        return [ false, "HEVC not supported, cannot test HDR or Dolby Vision" ];
+
+    const isHDRDetected = window.matchMedia('(dynamic-range: high)').matches;
+    console.log("HDR detected via media query:", isHDRDetected);
+
+    const isDVSupported = MediaSource.isTypeSupported('video/mp4; codecs="dvhe.05.01"') && MediaSource.isTypeSupported('video/mp4; codecs="dvh1.05.01"');
+    if (isDVSupported != isHDRDetected) {
+        if (isDVSupported)
+            return [ false, "Dolby Vision supported but HDR not detected" ];
+        else
+            return [ false, "Dolby Vision not supported but HDR detected" ];
+    }
+
+    if (!('mediaCapabilities' in navigator)) {
+        return [ false, "MediaCapabilities API not supported" ];
+    }
+
+    /*
+    dictionary VideoConfiguration {
+        required DOMString contentType;
+        required unsigned long width;
+        required unsigned long height;
+        required unsigned long long bitrate;
+        required double framerate;
+        boolean hasAlphaChannel;
+        HdrMetadataType hdrMetadataType;
+        ColorGamut colorGamut;
+        TransferFunction transferFunction;
+        DOMString scalabilityMode;
+        boolean spatialScalability;
+    };
+    */
+    // Check MediaCapabilities decoding support for HDR and SDR configurations
+    const testConfigs = [
+        { mediaConfig: { type: "file", video: { contentType: 'video/mp4; codecs="hev1.1.6.L93.B0"', width: 1920, height: 1080, framerate: 30, bitrate: 5000000, transferFunction: "srgb" } }, hdr: false },
+        { mediaConfig: { type: "file", video: { contentType: 'video/mp4; codecs="hev1.1.6.L93.B0"', width: 1920, height: 1080, framerate: 30, bitrate: 15000000, transferFunction: "pq" } }, hdr: true },
+        { mediaConfig: { type: "file", video: { contentType: 'video/mp4; codecs="hev1.1.6.L93.B0"', width: 1920, height: 1080, framerate: 30, bitrate: 15000000, transferFunction: "hlg" } }, hdr: true },
+        { mediaConfig: { type: "file", video: { contentType: 'video/mp4; codecs="hev1.1.6.L93.B0"', width: 1920, height: 1080, framerate: 30, bitrate: 15000000, hdrMetadataType: "smpteSt2086" } }, hdr: true },
+        { mediaConfig: { type: "file", video: { contentType: 'video/mp4; codecs="hev1.1.6.L93.B0"', width: 1920, height: 1080, framerate: 30, bitrate: 15000000, hdrMetadataType: "smpteSt2094-10" } }, hdr: true },
+        { mediaConfig: { type: "file", video: { contentType: 'video/mp4; codecs="hev1.1.6.L93.B0"', width: 1920, height: 1080, framerate: 30, bitrate: 15000000, hdrMetadataType: "smpteSt2094-40" } }, hdr: true },
+        { mediaConfig: { type: "file", video: { contentType: 'video/mp4; codecs="hev1.1.6.L93.B0"', width: 1920, height: 1080, framerate: 30, bitrate: 5000000, transferFunction: "srgb" } }, hdr: false },
+        { mediaConfig: { type: "file", video: { contentType: 'video/mp4; codecs="hvc1.1.6.L93.B0"', width: 1920, height: 1080, framerate: 30, bitrate: 5000000, transferFunction: "srgb" } }, hdr: false },
+        { mediaConfig: { type: "file", video: { contentType: 'video/mp4; codecs="hev1.1.6.L93.B0"', width: 3840, height: 2160, framerate: 60, bitrate: 15000000, transferFunction: "pq" } }, hdr: true },
+        { mediaConfig: { type: "file", video: { contentType: 'video/mp4; codecs="hev1.1.6.L93.B0"', width: 3840, height: 2160, framerate: 60, bitrate: 15000000, transferFunction: "pq", hdrMetadataType: "smpteSt2086" } }, hdr: true },
+        { mediaConfig: { type: "file", video: { contentType: 'video/mp4; codecs="hev1.1.6.L93.B0"', width: 3840, height: 2160, framerate: 60, bitrate: 15000000, transferFunction: "hlg" } }, hdr: true },
+        { mediaConfig: { type: "file", video: { contentType: 'video/mp4; codecs="hev1.1.6.L93.B0"', width: 3840, height: 2160, framerate: 60, bitrate: 15000000, hdrMetadataType: "smpteSt2094-10" } }, hdr: true },
+
+        // Dolby Vision 4K
+        { mediaConfig: { type: "file", video: { contentType: 'video/mp4; codecs="dvhe.05.01"', width: 3840, height: 2160, framerate: 60, bitrate: 20000000 } }, hdr: true },
+        { mediaConfig: { type: "file", video: { contentType: 'video/mp4; codecs="dvh1.05.01"', width: 3840, height: 2160, framerate: 60, bitrate: 20000000 } }, hdr: true },
+        { mediaConfig: { type: "file", video: { contentType: 'video/mp4; codecs="dvhe.05.01"', width: 3840, height: 2160, framerate: 60, bitrate: 20000000, transferFunction: "pq" } }, hdr: true },
+        { mediaConfig: { type: "file", video: { contentType: 'video/mp4; codecs="dvh1.05.01"', width: 3840, height: 2160, framerate: 60, bitrate: 20000000, transferFunction: "pq" } }, hdr: true }
+    ];
+
+    for (const cfg of testConfigs) {
+        // Check MediaCapabilities decoding support
+        let mcSupported = false;
+        console.log("Testing MediaCapabilities decodingInfo for config:", cfg.mediaConfig);
+        try {
+            const info = await navigator.mediaCapabilities.decodingInfo(cfg.mediaConfig);
+            mcSupported = info.supported;
+            // Skip HDR configs if HDR display not detected
+            if (!mcSupported && cfg.hdr && !isHDRDetected) continue;
+            // Fail if unsupported
+            if (!mcSupported) {
+                return [false, `MediaCapabilities decodingInfo returned unsupported for config: ${JSON.stringify(cfg.mediaConfig)}`];
+            }
+            // Fail if HDR config reported supported but no HDR display
+            if (cfg.hdr && !isHDRDetected) {
+                return [false, `HDR config reported as supported when no HDR display detected: ${JSON.stringify(cfg.mediaConfig)}`];
+            }
+        } catch(e) {
+            return [ false, `Error calling MediaCapabilities.decodingInfo: ${e.message}` ];
+        }
+    }
+    if (isHDRDetected)
+        return [ true, "HDR display detected and all HDR tests passed" ];
+    else
+        return [ true, "No HDR display detected and all SDR tests passed" ];
+}
+
+async function load() {
+    failTimeout(5, "Time out");
+
+    const [result, msg] = await runTests();
+    if (result) {
+        reportPass(msg);
+    } else {
+        reportFail(msg);
+    }
+}
+
+</script>
+</head>
+<body onload="load()">
+</body>
+</html>

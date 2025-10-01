@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <script src="../lib/utils.js"></script>
+    <script src="../lib/mse.js"></script>
+    <script type="text/javascript">
+    // This test reproduces an original HbbTV test case org.hbbtv_DA540615 failure with Rialto,
+    // which occurs on a bandwidth change that forces switching to a different quality audio.
+    // The root cause is linked with appending again the segment that is currently playing.
+    // Init and data segments were generated using command below (output files were then
+    // renamed for clarity).
+    //
+    // ffmpeg -f lavfi -seek_timestamp 1 -ss 0 -i "sine=f=1000\:d=30" -t 30 -af "volume=0\:enable=gt(mod(t\, 1)\, 0.1)" -f dash -seg_duration 3 -movflags +faststart audio1kHz.mpd
+
+    function log(message) {
+        console.log(message);
+        document.getElementById('console').innerHTML += message + "<br>";
+    }
+
+    async function runTestCase() {
+        failTimeout(30, "Test case timed out");
+
+        var mediaElement = document.getElementById("video");
+        var mediaSource = null;
+        var audioSourceBuffer = null;
+
+        const audioMimeType = 'audio/mp4; codecs="mp4a.40.2"';
+        const totalDuration = 18;
+        const audioSegCount = 6; // Gives 18 second playback duration with 3 second segments
+        const audioInit1kHzUrl = "../media/segments/audio/3sec_1kHz/init.mp4"
+        const audio1kHzUrl     = "../media/segments/audio/3sec_1kHz/segment-$num$.mp4"
+
+        mediaSource = await asyncPrepareMediaSource(mediaElement, duration=totalDuration, log);
+        audioSourceBuffer = await asyncPrepareSourceBuffer(mediaSource, audioMimeType, null, log);
+
+        var audio1kHzPromises = [];
+        var audio1kHzData = [];
+
+        log("fetching all data...");
+
+        audio1kHzPromises.push( asyncFetchAB(audioInit1kHzUrl) );
+        for (let i = 1; i <= audioSegCount; i++) {
+            audio1kHzPromises.push( asyncFetchAB(audio1kHzUrl.replace('$num$', String(i).padStart(5, '0'))) );
+        }
+
+        audio1kHzData = await Promise.all(audio1kHzPromises);
+
+        log("appending audio data with 1kHz tone...");
+
+        await asyncAppendDataToSourceBuffer(mediaSource, audioSourceBuffer, audio1kHzData[0], log);
+        await asyncAppendDataToSourceBuffer(mediaSource, audioSourceBuffer, audio1kHzData[1], log);
+        await asyncAppendDataToSourceBuffer(mediaSource, audioSourceBuffer, audio1kHzData[2], log);
+        await asyncAppendDataToSourceBuffer(mediaSource, audioSourceBuffer, audio1kHzData[3], log);
+
+        log("start play...");
+        mediaElement.play();
+
+        var stalledPromise = new Promise((resolve) => {
+            mediaElement.onwaiting = () => { mediaElement.onwaiting = null; resolve(); }
+        });
+
+        log("waiting to pass start of 3rd audio segment...");
+        await new Promise((resolve) => {
+            mediaElement.ontimeupdate = () => { if (mediaElement.currentTime > 7) { mediaElement.ontimeupdate = null; resolve(); } }
+        });
+
+        log("appending audio data for segment being played...");
+        await asyncAppendDataToSourceBuffer(mediaSource, audioSourceBuffer, audio1kHzData[3], log);
+
+        log("appending more audio data with 1kHz tone...");
+        await asyncAppendDataToSourceBuffer(mediaSource, audioSourceBuffer, audio1kHzData[4], log);
+        await asyncAppendDataToSourceBuffer(mediaSource, audioSourceBuffer, audio1kHzData[5], log);
+        await asyncAppendDataToSourceBuffer(mediaSource, audioSourceBuffer, audio1kHzData[6], log);
+
+        mediaSource.endOfStream();
+
+        resetFailTimeout();
+        failTimeout(15, "Test case timed out (playback positions have not evolved)");
+
+        log("waiting till last appended audio segment is reached (playback position 16 sec)...");
+        await new Promise((resolve) => {
+            mediaElement.ontimeupdate = () => { if (mediaElement.currentTime >= 16) { mediaElement.ontimeupdate = null; resolve(); } }
+        });
+
+        reportPass("Complete");
+    }
+  </script>
+</head>
+<body onload="runTestCase()" bgcolor="gray">
+  <video id="video" style="float: right;" controls></video>
+  <div id="console" style="font-size:10px"></div>
+</body>
+</html>

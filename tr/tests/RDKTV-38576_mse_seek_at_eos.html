@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+	<meta charset='UTF-8' />
+	<meta http-equiv='Cache-Control' content='no-cache, no-store, must-revalidate' />
+	<meta http-equiv='Pragma' content='no-cache' />
+	<meta http-equiv='Expires' content='0' />
+	<title>MSE restart at EOS test</title>
+	<style>
+		video {
+			width: 100%;
+			height: 100%;
+		}
+
+		body {
+			margin: 0;
+			padding: 0;
+			background-color: white;
+			overflow: hidden;
+		}
+	</style>
+	<script src="../lib/utils.js"></script>
+	<script src="../lib/mse.js"></script>
+</head>
+
+<body>
+	<script type='text/javascript'>
+		const audioUrl = 'https://dash.akamaized.net/akamai/bbb_30fps/bbb_a64k/bbb_a64k_$number.m4a'
+		const videoUrl = 'https://dash.akamaized.net/akamai/bbb_30fps/bbb_30fps_1280x720_4000k/bbb_30fps_1280x720_4000k_$number.m4v'
+
+		let video = null
+
+		document.addEventListener('DOMContentLoaded', function () {
+			setTimeout(startApp, 0)
+		})
+
+		function cleanup() {
+			console.log("Cleanup")
+			let srcUrl = video.src
+			video.removeAttribute('src')
+			video.load()
+			video.remove()
+			video = null
+			window.URL.revokeObjectURL(srcUrl)
+		}
+
+		async function startApp() {
+
+			video = document.createElement('video')
+			document.body.appendChild(video)
+
+			video.addEventListener('error', function (e) {
+				reportFail('Test failed. Got an error: ' + video.error.code + ', ' + video.error.message)
+				cleanup()
+			})
+
+			let ms = new MediaSource()
+			await new Promise((resolve, reject) => {
+				ms.addEventListener('sourceopen', function () {
+					console.log('onSourceOpen()')
+					resolve()
+				}, { once: true })
+				video.src = window.URL.createObjectURL(ms)
+			})
+
+			let audioSb = ms.addSourceBuffer('audio/mp4; codecs="mp4a.40.2"')
+			let videoSb = ms.addSourceBuffer('video/mp4; codecs="avc1.640028"')
+
+			// Avoid operating at 0 timestamp because video player may automatically seek to 0 after EOS
+			audioSb.timestampOffset = 1;
+			videoSb.timestampOffset = 1;
+
+			let appendData = async () => {
+				await Promise.all([
+					asyncFetchAndAppend(ms, audioSb, audioUrl.replace('$number', '0')),
+					asyncFetchAndAppend(ms, videoSb, videoUrl.replace('$number', '0')),
+				])
+				await Promise.all([
+					asyncFetchAndAppend(ms, audioSb, audioUrl.replace('$number', '1')),
+					asyncFetchAndAppend(ms, videoSb, videoUrl.replace('$number', '1')),
+				])
+			}
+
+			let restartPlayback = async () => {
+				console.log("Restarting playback at 1s")
+				video.pause()
+
+				// Reset timestampOffset - that will reopen MediaSource for appending (even after EOS)
+				audioSb.timestampOffset = 1;
+				videoSb.timestampOffset = 1;
+				await appendData()
+
+				video.currentTime = 1;
+				video.play()
+				// Mark end of stream to recalculate buffering state and readyState
+				// at new position. Seek request may not be fully handled yet at this point.
+				// This should make readyState = HAVE_ENOUGH_DATA and allow playback to start truely.
+				ms.endOfStream();
+			}
+
+			let iterations = 5;
+			video.addEventListener('ended', async function () {
+				console.log("Video ended")
+				resetFailTimeout()
+				failTimeout(5, "Playback did not restart after EOS and seek at EOS", cleanup)
+				if (--iterations == 0) {
+					reportPass('Test passed. Playback restarted after EOS and seek at EOS')
+					cleanup()
+					return
+				}
+				await restartPlayback()
+			})
+
+			// speed up testing by skipping ahead during playback
+			video.addEventListener('timeupdate', () => {
+				if (!video)
+					return;
+				if (video.currentTime > 1.5 && video.currentTime < 2) {
+					video.currentTime = 4;
+				}
+			})
+
+			await appendData()
+			failTimeout(5, "Neither eos nor error received", cleanup)
+			console.log("Starting playback")
+			video.currentTime = 1;
+			video.play();
+			ms.endOfStream();
+		}
+	</script>
+    <button onclick="video.play()" style="position: fixed; top: 0px; left: 0px; width: 100px; height: 50px;">video.play()</button>
+</body>
+
+</html>

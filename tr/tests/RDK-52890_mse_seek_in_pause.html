@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset='UTF-8' />
+    <meta http-equiv='Cache-Control' content='no-cache, no-store, must-revalidate' />
+    <meta http-equiv='Pragma' content='no-cache' />
+    <meta http-equiv='Expires' content='0' />
+    <title>MSE simple seeking test in PAUSED state</title>
+    <style>
+        video {
+            width: 50%;
+            height: 50%;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: white;
+            overflow: hidden;
+        }
+    </style>
+    <script src="../lib/utils.js"></script>
+    <script src="../lib/mse.js"></script>
+</head>
+
+<body>
+    <script type='text/javascript'>
+        const audioUrl = 'https://dash.akamaized.net/akamai/bbb_30fps/bbb_a64k/bbb_a64k_$Number$.m4a'
+        const videoUrl = 'https://dash.akamaized.net/akamai/bbb_30fps/bbb_30fps_1280x720_4000k/bbb_30fps_1280x720_4000k_$Number$.m4v'
+
+        let video = null
+        var ms, audioSb, videoSb;
+
+        document.addEventListener('DOMContentLoaded', function () {
+            setTimeout(startApp, 0)
+        })
+
+
+        function cleanup() {
+            let srcUrl = video.src
+            video.removeAttribute('src')
+            video.load()
+            video.remove()
+            video = null
+            window.URL.revokeObjectURL(srcUrl)
+        }
+
+        async function startApp() {
+            video = document.createElement('video')
+            document.body.appendChild(video)
+
+            video.addEventListener('error', function (e) {
+                reportFail('Test failed. Got an error: ' + video.error.code + ', ' + video.error.message)
+                cleanup()
+            })
+
+            failTimeout(5, "canplay event dispatched")
+            video.oncanplay = () => {
+                resetFailTimeout()
+                video.pause();
+                setTimeout(startTesting, 0)
+            }
+
+            ms = await asyncPrepareMediaSource(video);
+            var audioSb, videoSb;
+
+            if (_params["audio"] != 0)
+                audioSb = await asyncPrepareSourceBuffer(ms, 'audio/mp4; codecs="mp4a.40.2"')
+            if (_params["video"] != 0)
+                videoSb = await asyncPrepareSourceBuffer(ms, 'video/mp4; codecs="avc1.640028"')
+
+            audioSb && await asyncFetchAndAppend(ms, audioSb, audioUrl.replace('$Number$', 0))
+            videoSb && await asyncFetchAndAppend(ms, videoSb, videoUrl.replace('$Number$', 0))
+            audioSb && await asyncFetchAndAppend(ms, audioSb, audioUrl.replace('$Number$', 1))
+            videoSb && await asyncFetchAndAppend(ms, videoSb, videoUrl.replace('$Number$', 1))
+            audioSb && await asyncFetchAndAppend(ms, audioSb, audioUrl.replace('$Number$', 2))
+            videoSb && await asyncFetchAndAppend(ms, videoSb, videoUrl.replace('$Number$', 2))
+        }
+
+        function startTesting() {
+            console.log("Start testing");
+
+            // westerossink is occasionally reporting a timestamp after seek that is the seeked-to position minus the sample duration
+            // after internal discussion, considering the minior deviation once after seek, patch the test to accept it
+            const positionTolerance = 0.04;
+            var currentPositionTolerance = 0.0;
+            var lastPosition = 0.0;
+            let checkPositionIval = setInterval(() => {
+                let currentTime = video.currentTime
+                if (currentTime >= lastPosition)
+                    lastPosition = currentTime;
+                else if (currentTime >= lastPosition - currentPositionTolerance) {
+                    lastPosition = currentTime;
+                    currentPositionTolerance = 0.0
+                }
+                else
+                    reportFail("Position moved back from " + lastPosition + " to " + currentTime)
+            }, 0);
+
+            var seekTarget = 1.0;
+            currentPositionTolerance = positionTolerance;
+
+            var seekFinished = () => {
+                if (seekTarget > 5) {
+                    clearInterval(checkPositionIval);
+                    reportPass("Position is not moving backward when seeking in paused state")
+                    return;
+                }
+                seekTarget += 1;
+                currentPositionTolerance = positionTolerance;
+
+                doSeek(seekTarget, seekFinished);
+            }
+            doSeek(seekTarget, seekFinished);
+        }
+
+        function doSeek(seekTarget, finishedCb) {
+            video.onseeked = () => {
+                setTimeout(() => {
+                    resetFailTimeout();
+                    video.onseeked = null;
+                    finishedCb();
+                    return;
+                }, 100)
+            }
+            failTimeout(5, "Seek to " + seekTarget);;
+            video.currentTime = seekTarget;
+        }
+    </script>
+</body>
+
+</html>

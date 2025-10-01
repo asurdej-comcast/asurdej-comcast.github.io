@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <script src="../lib/utils.js"></script>
+  <script src="../lib/mse.js"></script>
+</head>
+<body>
+  <video id="video" controls></video>
+  <script type="text/javascript">
+    var video = document.getElementById("video");
+
+    videoUrl = _params["url"];
+    if (!videoUrl)
+      videoUrl = "../media/yt_car_video.mp4";
+    console.log("MSE video url: " + videoUrl);
+
+    prepareMSE(video, videoUrl, () => {
+      video.ontimeupdate = () => {
+        if (video.currentTime > 1) {
+          resetFailTimeout();
+          video.ontimeupdate = null;
+          startTesting();
+        }
+      }
+      failTimeout(5, "Video did not reach 1s currentTime in 5 sec");
+      video.play();
+    });
+
+
+    function startTesting() {
+      console.log("START TEST");
+      video.onended = () => {
+        video.currentTime = 0;
+        video.play();
+        video.ontimeupdate = () => {
+          if (video.currentTime < 1) {
+            resetFailTimeout();
+            video.ontimeupdate = () => {
+              if (video.currentTime > 5) {
+                resetFailTimeout();
+                video.ontimeupdate = null;
+                reportPass("Video correctly rewinded without mediaSource recreation");
+              }
+            }
+            failTimeout(10, "Video does not play after rewind");
+          }
+        }
+        failTimeout(5, "Failed to rewind");
+      }
+      video.currentTime = 170;
+    }
+  </script>
+</body>
+</html>

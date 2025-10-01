@@ -50,7 +50,7 @@ document.addEventListener("DOMContentLoaded", () => {
                      : null;
 });
 
-window.addEventListener("keydown", (event) => {
+window.addEventListener("keyup", (event) => {
     if (event.defaultPrevented) {
         return;
     }

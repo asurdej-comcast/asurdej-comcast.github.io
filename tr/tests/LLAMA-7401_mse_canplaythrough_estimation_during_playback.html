@@ -43,12 +43,14 @@
         log("waiting for 'waiting' event...");
         await new Promise((resolve) => { mediaElement.onwaiting = () => { resolve(); } });
 
+        var onCanPlayThroughPromise = new Promise((resolve) => { mediaElement.oncanplaythrough = () => { resolve(); } });
+
         // mediaElement.currentTime += 1.0;
         log("adding more data...");
         await asyncAppendDataToSourceBuffer(mediaSource, audioSourceBuffer, audioData.slice(audioData.byteLength/6), log);
 
         log("waiting for 'canplaythrough' event...");
-        await new Promise((resolve) => { mediaElement.oncanplaythrough = () => { resolve(); } });
+        await onCanPlayThroughPromise;
 
         log("waiting for 'currentTime' to surpass 13...");
         await new Promise((resolve) => { mediaElement.ontimeupdate = () => { if (mediaElement.currentTime > 13.0) { resolve(); } } });

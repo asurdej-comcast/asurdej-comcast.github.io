@@ -49,13 +49,15 @@ function reportFail(msg) {
   reportResult(false, msg);
 }
 
-function failTimeout(t_sec, msg) {
+function failTimeout(t_sec, msg, callback) {
   let t = t_sec * 1000;
   if (_fail_timeout) {
     console.log("WARNING! Fail timeout set already");
     return;
   }
   _fail_timeout = setTimeout(()=>{
+    if (callback)
+      callback();
     reportFail(msg);
   }, t);
 }

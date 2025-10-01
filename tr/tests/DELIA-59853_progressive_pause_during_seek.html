@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html>
+<head>
+<script src="../lib/utils.js"></script>
+<script type="text/javascript">
+
+// Related Jira tickets: DELIA-59853, BCOM-6490
+
+// Test checks if the player can handle pause requests during seek operation.
+// The test will seek to a random time and pause the player, watching current time progress.
+
+// How many times to seek and pause
+var iterations = 10;
+var offset = 0.5; // video may play for some small ammount of time before executing pause request
+var maxPauseTime = 30; // max time between seek and pause request [in ms]
+var video;
+
+function runTest() {
+    var seekPosition = video.duration;
+
+    var interval = setInterval(() => {
+        if (iterations-- <= 0) {
+            clearInterval(interval);
+            reportPass("OK");
+            return;
+        }
+        video.play();
+        seekPosition = Math.random() * (video.duration - 2); // seek to a random position
+        console.log("Seeking to: " + seekPosition);
+        video.currentTime = seekPosition;
+        setTimeout(() => {
+            video.pause();
+        }, Math.floor(Math.random() * maxPauseTime)); // pause the video after random time, max 30ms
+    }, 3000); // wait for 3sec before seeking to next position
+
+    video.ontimeupdate = (event) => {
+        console.log("Current time: " + video.currentTime + " Seek position: " + seekPosition + " Diff: " + (video.currentTime - seekPosition));
+        if (video.currentTime > seekPosition + offset) {
+            clearInterval(interval);
+            reportFail("Time has progressed beyond seek position: Current time: " + video.currentTime + " Seek position: " + seekPosition);
+        }
+    };
+}
+
+function load() {
+    var media_url = _params["url"];
+    if (!media_url) {
+        media_url = "../media/car_20130125_18.mp4";
+    }
+    console.log("media_url = " + media_url);
+
+    video = document.getElementById("video");
+    video.src = media_url;
+    
+    video.oncanplay = function() {
+        video.oncanplay = null;
+        runTest();
+    };
+    video.play(1);
+}
+
+</script>
+</head>
+<body onload="load()">
+    <video id="video" controls></video>
+</body>
+</html>
