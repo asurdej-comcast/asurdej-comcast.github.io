@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>HTML5 Video Lifecycle Test</title>
+
+<style>
+  video {
+    width: 480px;
+    display: block;
+    margin: 10px;
+    background: black;
+  }
+</style>
+</head>
+
+<body bgColor="white">
+
+<h2>Automatic video lifecycle test</h2>
+
+<div id="container"></div>
+
+<script>
+const videoOnlyUrl = "https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4";
+const avUrl = "https://www.w3schools.com/html/mov_bbb.mp4";
+const container = document.getElementById("container");
+const STEP_DELAY_MS = 3000;
+
+let video1 = null;
+let video2 = null;
+let video3 = null;
+
+
+// Step 1: Open, load, and pause video1 (video-only, no audio playback)
+function createVideo1() {
+    video1 = document.createElement("video");
+
+    video1.src = videoOnlyUrl;
+    video1.controls = true;
+    video1.muted = true;
+    video1.playsInline = true;
+
+    container.appendChild(video1);
+
+    video1.load();
+    video1.addEventListener("loadedmetadata", () => {
+        video1.pause();
+        console.log("Step 1: Video 1 loaded and paused (video-only)");
+    }, { once: true });
+}
+
+
+// Step 2: Open video2 (video + audio), and play for a couple of seconds
+function createVideo2() {
+    video2 = document.createElement("video");
+
+    video2.src = avUrl;
+    video2.controls = true;
+    video2.muted = false;
+    video2.playsInline = true;
+
+    container.appendChild(video2);
+
+    video2.load();
+    video2.play()
+        .then(() => {
+            console.log("Step 2: Video 2 playing (video + audio)");
+        })
+        .catch((err) => {
+            console.error("Step 2: Video 2 playback failed", err);
+        });
+}
+
+
+function destroyVideo2() {
+    if (!video2) {
+        return;
+    }
+
+    video2.pause();
+    video2.removeAttribute("src");
+    video2.load();
+    video2.remove();
+    video2 = null;
+
+    console.log("Step 3: Video 2 destroyed");
+}
+
+// Step 3: Create video3 (video + audio), load and pause
+function createVideo3Paused() {
+    video3 = document.createElement("video");
+
+    video3.src = avUrl;
+    video3.controls = true;
+    video3.muted = false;
+    video3.playsInline = true;
+
+    container.appendChild(video3);
+
+    video3.load();
+    video3.addEventListener("loadedmetadata", () => {
+        video3.pause();
+        console.log("Step 3: Video 3 loaded and paused (video + audio)");
+    }, { once: true });
+}
+
+// Step 4: Destroy video1
+function destroyVideo1() {
+    if (video1) {
+        video1.pause();
+
+        video1.removeAttribute("src");
+        video1.load();
+
+        video1.remove();
+        video1 = null;
+
+        console.log("Step 4: Video 1 destroyed");
+    }
+}
+
+// Step 5: Play video3
+function playVideo3() {
+    if (video3) {
+        video3.play()
+            .then(() => {
+                console.log("Step 5: Video 3 playing");
+            })
+            .catch((err) => {
+                console.error("Step 5: Video 3 playback failed", err);
+            });
+    }
+}
+
+createVideo1();
+
+setTimeout(() => {
+    createVideo2();
+}, STEP_DELAY_MS);
+
+setTimeout(() => {
+    destroyVideo2();
+    createVideo3Paused();
+}, STEP_DELAY_MS * 2);
+
+setTimeout(() => {
+    destroyVideo1();
+}, STEP_DELAY_MS * 3);
+
+setTimeout(() => {
+    playVideo3();
+}, STEP_DELAY_MS * 4);
+
+</script>
+
+</body>
+</html>
