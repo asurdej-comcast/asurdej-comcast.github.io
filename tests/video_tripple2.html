@@ -413,16 +413,19 @@ setTimeout(() => {
 
 setTimeout(() => {
     destroyVideo2();
-    createVideo3MseNoAppend();
 }, STEP_DELAY_MS * 3);
 
 setTimeout(() => {
-    destroyVideo1();
+    createVideo3MseNoAppend();
 }, STEP_DELAY_MS * 4);
 
 setTimeout(() => {
-    appendAndPlayVideo3();
+    destroyVideo1();
 }, STEP_DELAY_MS * 5);
+
+setTimeout(() => {
+    appendAndPlayVideo3();
+}, STEP_DELAY_MS * 6);
 
 </script>
 
