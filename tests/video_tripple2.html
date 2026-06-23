@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>HTML5 Video Lifecycle Test</title>
+
+<style>
+  video {
+    width: 480px;
+    display: block;
+    margin: 10px;
+    background: black;
+  }
+</style>
+</head>
+
+<body bgColor="white">
+
+<h2>Automatic video lifecycle test</h2>
+
+<div id="container"></div>
+
+<script>
+const videoOnlyUrl = "https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4";
+const manifestUrl = "https://media.axprod.net/TestVectors/v7-Clear/Manifest.mpd";
+const container = document.getElementById("container");
+const STEP_DELAY_MS = 5000;
+
+let video1 = null;
+let video2 = null;
+let video3 = null;
+let video2Mse = null;
+let video3Mse = null;
+
+let mpdSelectionPromise = null;
+
+function getManifestBase(url) {
+    return url.substring(0, url.lastIndexOf("/") + 1);
+}
+
+function resolveTemplateUrl(baseUrl, template, representationId, number) {
+    let path = template.replace(/\$RepresentationID\$/g, representationId);
+    path = path.replace(/\$Number%0(\d+)d\$/g, (_m, width) => String(number).padStart(Number(width), "0"));
+    path = path.replace(/\$Number\$/g, String(number));
+    return new URL(path, baseUrl).toString();
+}
+
+function getSegmentTemplateNode(repNode, adaptationSetNode) {
+    return repNode.querySelector("SegmentTemplate") || adaptationSetNode.querySelector("SegmentTemplate");
+}
+
+async function getMpdSelection() {
+    if (mpdSelectionPromise) {
+        return mpdSelectionPromise;
+    }
+
+    mpdSelectionPromise = (async () => {
+        const response = await fetch(manifestUrl);
+        if (!response.ok) {
+            throw new Error(`Failed to fetch MPD: ${response.status}`);
+        }
+
+        const mpdText = await response.text();
+        const xml = new DOMParser().parseFromString(mpdText, "application/xml");
+        const parserError = xml.querySelector("parsererror");
+        if (parserError) {
+            throw new Error("Failed to parse MPD XML");
+        }
+
+        const adaptationSets = Array.from(xml.querySelectorAll("AdaptationSet"));
+
+        let selectedVideo = null;
+        let selectedAudio = null;
+
+        for (const adaptationSet of adaptationSets) {
+            const reps = Array.from(adaptationSet.querySelectorAll("Representation"));
+            for (const rep of reps) {
+                const mimeType = rep.getAttribute("mimeType") || adaptationSet.getAttribute("mimeType") || "";
+                const codecs = rep.getAttribute("codecs") || "";
+
+                if (!selectedVideo && mimeType === "video/mp4" && codecs.includes("avc1")) {
+                    const templateNode = getSegmentTemplateNode(rep, adaptationSet);
+                    if (!templateNode) {
+                        continue;
+                    }
+
+                    selectedVideo = {
+                        representationId: rep.getAttribute("id"),
+                        mimeType,
+                        codecs,
+                        initTemplate: templateNode.getAttribute("initialization"),
+                        mediaTemplate: templateNode.getAttribute("media"),
+                        startNumber: Number(templateNode.getAttribute("startNumber") || "1")
+                    };
+                }
+
+                if (!selectedAudio && mimeType === "audio/mp4") {
+                    const templateNode = getSegmentTemplateNode(rep, adaptationSet);
+                    if (!templateNode) {
+                        continue;
+                    }
+
+                    selectedAudio = {
+                        representationId: rep.getAttribute("id"),
+                        mimeType,
+                        codecs,
+                        initTemplate: templateNode.getAttribute("initialization"),
+                        mediaTemplate: templateNode.getAttribute("media"),
+                        startNumber: Number(templateNode.getAttribute("startNumber") || "1")
+                    };
+                }
+            }
+        }
+
+        if (!selectedVideo || !selectedAudio) {
+            throw new Error("Could not select AVC video and MP4 audio representations from MPD");
+        }
+
+        const manifestBase = getManifestBase(manifestUrl);
+
+        return {
+            video: {
+                codecString: `${selectedVideo.mimeType}; codecs=\"${selectedVideo.codecs}\"`,
+                initUrl: resolveTemplateUrl(
+                    manifestBase,
+                    selectedVideo.initTemplate,
+                    selectedVideo.representationId,
+                    selectedVideo.startNumber
+                ),
+                segment1Url: resolveTemplateUrl(
+                    manifestBase,
+                    selectedVideo.mediaTemplate,
+                    selectedVideo.representationId,
+                    selectedVideo.startNumber
+                ),
+                segment2Url: resolveTemplateUrl(
+                    manifestBase,
+                    selectedVideo.mediaTemplate,
+                    selectedVideo.representationId,
+                    selectedVideo.startNumber + 1
+                ),
+                segment3Url: resolveTemplateUrl(
+                    manifestBase,
+                    selectedVideo.mediaTemplate,
+                    selectedVideo.representationId,
+                    selectedVideo.startNumber + 2
+                )
+            },
+            audio: {
+                codecString: `${selectedAudio.mimeType}; codecs=\"${selectedAudio.codecs}\"`,
+                initUrl: resolveTemplateUrl(
+                    manifestBase,
+                    selectedAudio.initTemplate,
+                    selectedAudio.representationId,
+                    selectedAudio.startNumber
+                ),
+                segment1Url: resolveTemplateUrl(
+                    manifestBase,
+                    selectedAudio.mediaTemplate,
+                    selectedAudio.representationId,
+                    selectedAudio.startNumber
+                ),
+                segment2Url: resolveTemplateUrl(
+                    manifestBase,
+                    selectedAudio.mediaTemplate,
+                    selectedAudio.representationId,
+                    selectedAudio.startNumber + 1
+                ),
+                segment3Url: resolveTemplateUrl(
+                    manifestBase,
+                    selectedAudio.mediaTemplate,
+                    selectedAudio.representationId,
+                    selectedAudio.startNumber + 2
+                )
+            }
+        };
+    })();
+
+    return mpdSelectionPromise;
+}
+
+function waitForEvent(target, eventName) {
+    return new Promise((resolve) => {
+        target.addEventListener(eventName, resolve, { once: true });
+    });
+}
+
+function appendBufferAsync(sourceBuffer, data) {
+    return new Promise((resolve, reject) => {
+        const onUpdateEnd = () => {
+            cleanup();
+            resolve();
+        };
+
+        const onError = () => {
+            cleanup();
+            reject(new Error("SourceBuffer append failed"));
+        };
+
+        const cleanup = () => {
+            sourceBuffer.removeEventListener("updateend", onUpdateEnd);
+            sourceBuffer.removeEventListener("error", onError);
+        };
+
+        sourceBuffer.addEventListener("updateend", onUpdateEnd, { once: true });
+        sourceBuffer.addEventListener("error", onError, { once: true });
+        sourceBuffer.appendBuffer(data);
+    });
+}
+
+async function fetchArrayBuffer(url) {
+    const response = await fetch(url);
+    if (!response.ok) {
+        throw new Error(`Failed to fetch segment: ${url} (${response.status})`);
+    }
+    return response.arrayBuffer();
+}
+
+async function createMseVideo(name, appendImmediately) {
+    const selection = await getMpdSelection();
+
+    if (!window.MediaSource) {
+        throw new Error("MediaSource API is not available");
+    }
+
+    if (!MediaSource.isTypeSupported(selection.video.codecString)) {
+        throw new Error(`Unsupported video codec: ${selection.video.codecString}`);
+    }
+
+    if (!MediaSource.isTypeSupported(selection.audio.codecString)) {
+        throw new Error(`Unsupported audio codec: ${selection.audio.codecString}`);
+    }
+
+    const video = document.createElement("video");
+    video.controls = true;
+    video.muted = false;
+    video.playsInline = true;
+    container.appendChild(video);
+
+    const mediaSource = new MediaSource();
+    const objectUrl = URL.createObjectURL(mediaSource);
+    video.src = objectUrl;
+
+    await waitForEvent(mediaSource, "sourceopen");
+
+    const videoSb = mediaSource.addSourceBuffer(selection.video.codecString);
+    const audioSb = mediaSource.addSourceBuffer(selection.audio.codecString);
+
+    console.log(`${name}: MSE opened and SourceBuffers created`);
+
+    const mseState = {
+        video,
+        mediaSource,
+        objectUrl,
+        videoSb,
+        audioSb,
+        selection,
+        hasAppended: false
+    };
+
+    if (appendImmediately) {
+        await appendInitialData(mseState, name);
+    }
+
+    return mseState;
+}
+
+async function appendInitialData(mseState, name) {
+    if (mseState.hasAppended) {
+        return;
+    }
+
+    const [vInit, vSeg1, vSeg2, vSeg3, aInit, aSeg1, aSeg2, aSeg3] = await Promise.all([
+        fetchArrayBuffer(mseState.selection.video.initUrl),
+        fetchArrayBuffer(mseState.selection.video.segment1Url),
+        fetchArrayBuffer(mseState.selection.video.segment2Url),
+        fetchArrayBuffer(mseState.selection.video.segment3Url),
+        fetchArrayBuffer(mseState.selection.audio.initUrl),
+        fetchArrayBuffer(mseState.selection.audio.segment1Url),
+        fetchArrayBuffer(mseState.selection.audio.segment2Url),
+        fetchArrayBuffer(mseState.selection.audio.segment3Url)
+    ]);
+
+    await appendBufferAsync(mseState.videoSb, vInit);
+    await appendBufferAsync(mseState.audioSb, aInit);
+    await appendBufferAsync(mseState.videoSb, vSeg1);
+    await appendBufferAsync(mseState.audioSb, aSeg1);
+    await appendBufferAsync(mseState.videoSb, vSeg2);
+    await appendBufferAsync(mseState.audioSb, aSeg2);
+    await appendBufferAsync(mseState.videoSb, vSeg3);
+    await appendBufferAsync(mseState.audioSb, aSeg3);
+
+    mseState.hasAppended = true;
+    console.log(`${name}: Appended init + 3 media segments`);
+}
+
+function destroyMseVideo(mseState, name) {
+    if (!mseState) {
+        return;
+    }
+
+    try {
+        mseState.video.pause();
+        mseState.video.removeAttribute("src");
+        mseState.video.load();
+        mseState.video.remove();
+
+        if (mseState.mediaSource.readyState === "open") {
+            mseState.mediaSource.endOfStream();
+        }
+    } catch (err) {
+        console.warn(`${name}: destroy encountered an issue`, err);
+    }
+
+    URL.revokeObjectURL(mseState.objectUrl);
+    console.log(`${name}: destroyed`);
+}
+
+
+// Step 1: Open, load, and pause video1 (video-only, no audio playback)
+function createVideo1() {
+    video1 = document.createElement("video");
+
+    video1.src = videoOnlyUrl;
+    video1.controls = true;
+    video1.muted = true;
+    video1.playsInline = true;
+
+    container.appendChild(video1);
+
+    video1.load();
+    video1.addEventListener("loadedmetadata", () => {
+        video1.pause();
+        console.log("Step 1: Video 1 loaded and paused (video-only)");
+    }, { once: true });
+}
+
+
+// Step 2: Open video2 as MSE, append data and play for a couple of seconds
+async function createAndPlayVideo2Mse() {
+    try {
+        video2Mse = await createMseVideo("Video 2", true);
+        video2 = video2Mse.video;
+
+        await video2.play();
+        console.log("Step 2: Video 2 MSE playing (audio + video)");
+    } catch (err) {
+        console.error("Step 2: Video 2 MSE setup/playback failed", err);
+    }
+}
+
+
+function destroyVideo2() {
+    if (!video2Mse) {
+        return;
+    }
+
+    destroyMseVideo(video2Mse, "Video 2");
+    video2Mse = null;
+    video2 = null;
+
+    console.log("Step 3: Video 2 destroyed");
+}
+
+// Step 3: Create video3 as MSE, load only (no append)
+async function createVideo3MseNoAppend() {
+    try {
+        video3Mse = await createMseVideo("Video 3", false);
+        video3 = video3Mse.video;
+        video3.pause();
+        console.log("Step 3: Video 3 MSE loaded with no data append");
+    } catch (err) {
+        console.error("Step 3: Video 3 MSE setup failed", err);
+    }
+}
+
+// Step 4: Destroy video1
+function destroyVideo1() {
+    if (video1) {
+        video1.pause();
+
+        video1.removeAttribute("src");
+        video1.load();
+
+        video1.remove();
+        video1 = null;
+
+        console.log("Step 4: Video 1 destroyed");
+    }
+}
+
+// Step 5: Append data to video3 and try to play
+async function appendAndPlayVideo3() {
+    if (!video3Mse || !video3) {
+        console.error("Step 5: Video 3 MSE instance is not available");
+        return;
+    }
+
+    try {
+        await appendInitialData(video3Mse, "Video 3");
+        await video3.play();
+        console.log("Step 5: Video 3 appended data and started playing");
+    } catch (err) {
+        console.error("Step 5: Video 3 append/play failed", err);
+    }
+}
+
+createVideo1();
+
+setTimeout(() => {
+    createAndPlayVideo2Mse();
+}, STEP_DELAY_MS);
+
+setTimeout(() => {
+    destroyVideo2();
+    createVideo3MseNoAppend();
+}, STEP_DELAY_MS * 3);
+
+setTimeout(() => {
+    destroyVideo1();
+}, STEP_DELAY_MS * 4);
+
+setTimeout(() => {
+    appendAndPlayVideo3();
+}, STEP_DELAY_MS * 5);
+
+</script>
+
+</body>
+</html>
