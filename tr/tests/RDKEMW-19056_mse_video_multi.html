@@ -69,16 +69,16 @@
 
         async function initTest() {
             await createVideo1AndPause();
-            await sleep(STEP_DELAY);
+            await sleep(2000);
             await createAndPlayVideo2();
-            await sleep(STEP_DELAY * 2);
+            await sleep(5000);
 
             destroyVideo2();
-            await sleep(STEP_DELAY);
+            await sleep(2000);
             await createVideo3MseNoAppend();
-            await sleep(STEP_DELAY);
+            await sleep(3000);
             destroyVideo1();
-            await sleep(STEP_DELAY);
+            await sleep(2000);
             await appendVideo3();
             await playVideo3();
         }
