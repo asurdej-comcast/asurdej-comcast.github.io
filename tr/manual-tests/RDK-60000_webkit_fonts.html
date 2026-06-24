@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Font Coverage & Styles Test</title>
+<style>
+  body {
+    background: #f8f9fa;
+    color: #111;
+    font-family: sans-serif;
+    margin: 20px;
+  }
+  h1 {
+    font-size: 22px;
+    margin-bottom: 10px;
+  }
+  p {
+    margin: 0;
+  }
+  .sample {
+    background: #fff;
+    padding: 12px;
+    margin: 8px 0;
+    border-radius: 8px;
+    border: 1px solid #ddd;
+    line-height: 1.8;
+  }
+  .script-name {
+    font-weight: 700;
+    margin-bottom: 6px;
+    color: #444;
+  }
+  .styles {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .style-box {
+    flex: 1 1 200px;
+    background: #fefefe;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    padding: 6px;
+  }
+  .style-box p {
+    margin: 4px 0;
+  }
+</style>
+</head>
+<body>
+<h1>Font Coverage & Style Test — WebKit Auto Font Selection</h1>
+<p>This page displays text in multiple scripts. WebKit should automatically pick the correct font. Each script is rendered in different <strong>styles</strong> for testing.</p>
+
+<div id="test-container"></div>
+
+<script>
+const samples = [
+  {
+    name: "Latin",
+    text: "The quick brown fox jumps over the lazy dog 1234567890\n" +
+          "Western Europe: À Á Â Ã Ä Å Æ Ç È É Ê Ë Ì Í Î Ï Ð Ñ Ò Ó Ô Õ Ö Ø Ù Ú Û Ü Ý Þ ß\n" +
+          "Central Europe: Ā Ă Ą Ć Ĉ Ċ Č Ď Đ Ē Ĕ Ė Ę Ě Ĝ Ğ Ġ Ģ Ĥ Ħ Ĩ Ī Ĭ Į İ\n" +
+          "Polish: Ą Ć Ę Ł Ń Ó Ś Ź Ż\n" +
+          "Other accents: á à â ä ã å æ ç é è ê ë í ì î ï ñ ó ò ô ö õ ø ú ù û ü ý ÿ\n" +
+          "Currency & symbols: € £ $ ¥ ¢ © ® ™ ✓ ✕\n" +
+          "Math & punctuation: ± ÷ × = ≠ < > ≤ ≥ ∑ ∏ ∞ ∫ √ ∆ ∂ ∇ ∈ ∉ ∩ ∪"
+  },
+  { name: "Greek", text: "Καλημέρα κόσμε, Αλφάβητο" },
+  { name: "Cyrillic", text: "Привет, мир. Быстрая коричневая лиса" },
+  { name: "Hebrew", text: "שלום עולם" },
+  { name: "Arabic", text: "مرحبا بالعالم" },
+  { name: "Devanagari (Hindi)", text: "नमस्ते दुनिया" },
+  { name: "Bengali", text: "হ্যালো বিশ্ব" },
+  { name: "Gujarati", text: "નમસ્તે દુનિયા" },
+  { name: "Gurmukhi", text: "ਸਤਿ ਸ੍ਰੀ ਅਕਾਲ ਦੁਨੀਆ" },
+  { name: "Tamil", text: "வணக்கம் உலகம்" },
+  { name: "Telugu", text: "హలో వరల్డ్" },
+  { name: "Kannada", text: "ನಮಸ್ಕಾರ ಪ್ರಪಂಚ" },
+  { name: "Malayalam", text: "ഹലോ ലോകം" },
+  { name: "Thai", text: "สวัสดี โลก" },
+  { name: "Lao", text: "ສະບາຍດີໂລກ" },
+  { name: "Khmer", text: "សួស្តី​ពិភពលោក" },
+  { name: "Chinese Simplified", text: "你好，世界" },
+  { name: "Chinese Traditional", text: "你好，世界！繁體字測試" },
+  { name: "Japanese", text: "こんにちは世界" },
+  { name: "Korean", text: "안녕하세요 세상" },
+  { name: "Armenian", text: "Բարեւ աշխարհ" },
+  { name: "Georgian", text: "გამარჯობა მსოფლიო" },
+  { name: "Ethiopic", text: "ሰላም ልዑል" },
+  { name: "Cherokee", text: "ᎣᏏᏲ ᎡᎶᎯ" },
+  { name: "Canadian Aboriginal", text: "ᐊᓂᓈᓇᐅᔭᕆᐊᖅ" },
+  { name: "Myanmar", text: "မင်္ဂလာပါကမ္ဘာလောက" },
+  { name: "Sinhala", text: "හෙලෝ ලෝකය" },
+  { name: "Tibetan", text: "བཀྲ་ཤིས་བདེ་ལེགས།" },
+  { name: "Mongolian", text: "ᠮᠣᠩᠭᠣᠯ ᠬᠣᠶᠢ" },
+  { name: "Yi", text: "ꆈꌠꁱꂷ ꀋꇩ" },
+  { name: "N’Ko", text: "ߞߊ߬ߝߏ߬ߙߏ߲߬ߘߊ" },
+  { name: "Syriac", text: "ܫܠܡܐ ܥܠܡܐ" },
+  { name: "Thaana", text: "އަސްލާމު ޢަލައްމް" },
+  { name: "Adlam", text: "𞤀𞤁𞤂𞤃𞤄𞤅" },
+  { name: "Vai", text: "ꕙꔤ ꕙꘂ" },
+  { name: "Tifinagh", text: "ⵜⴰⵎⴰⵣⵉⵖⵜ" },
+  { name: "Balinese", text: "ᬩᬲᬶᬦ᭄ᬮᬶᬲ᭄" },
+  { name: "Emoji & Symbols", text: "😀 😎 🐱‍👤 🚀 🌍 ❤️ 🇺🇳 ∑ ∞ ≈ ± √ π © ™ ⌘ ↔ ➜ ☀ ⚡" },
+];
+
+const styles = [
+  { name: "Normal", css: "" },
+  { name: "Bold", css: "font-weight:bold;" },
+  { name: "Italic", css: "font-style:italic;" },
+  { name: "Bold Italic", css: "font-weight:bold; font-style:italic;" },
+  { name: "Large", css: "font-size:28px;" },
+  { name: "Small", css: "font-size:16px;" },
+  { name: "Monospace", css: "font-family: monospace;" },
+  { name: "Serif", css: "font-family: serif;" },
+  { name: "Underlined", css: "text-decoration: underline;" },
+];
+
+const container = document.getElementById('test-container');
+
+samples.forEach(s => {
+  const div = document.createElement('div');
+  div.className = 'sample';
+  div.innerHTML = `<div class="script-name">${s.name}</div>`;
+  const styleDiv = document.createElement('div');
+  styleDiv.className = 'styles';
+
+  styles.forEach(st => {
+    const b = document.createElement('div');
+    b.className = 'style-box';
+    b.innerHTML = `<p><strong>${st.name}</strong></p><p style="${st.css}">${s.text}</p>`;
+    styleDiv.appendChild(b);
+  });
+
+  div.appendChild(styleDiv);
+  container.appendChild(div);
+});
+</script>
+
+</body>
+</html>

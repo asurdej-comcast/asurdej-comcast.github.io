@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset='UTF-8' />
+    <meta http-equiv='Cache-Control' content='no-cache, no-store, must-revalidate' />
+    <meta http-equiv='Pragma' content='no-cache' />
+    <meta http-equiv='Expires' content='0' />
+    <title>EME test clear - encrypted transitions</title>
+    <style>
+        video {
+            width: 50%;
+            height: 50%;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: white;
+            overflow: hidden;
+        }
+    </style>
+    <script src="../lib/utils.js"></script>
+    <script src="../lib/mse.js"></script>
+</head>
+
+<body>
+    <script type='text/javascript'>
+        // create and attach a button:
+        const button = document.createElement('button');
+        button.textContent = 'Click me';
+        button.style.display = 'block';
+        document.body.appendChild(button);
+
+        const videoOnlyUrl = "https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4";
+
+        // https://media.axprod.net/TestVectors/v7-Clear/Manifest.mpd
+        // 720p h264
+        const baseVideoUrl = "https://media.axprod.net/TestVectors/v7-Clear/4/";
+        const baseAudioUrl = "https://media.axprod.net/TestVectors/v7-Clear/15/";
+        const videoMimeType = 'video/mp4; codecs="avc1.640032"'
+        const audioMimeType = 'audio/mp4; codecs="mp4a.40.29"'
+
+        const STEP_DELAY = 5000;
+        
+        let video1, video2, video3;
+        let ms2, ms3;
+        let videoSb2, audioSb2, videoSb3, audioSb3;
+
+        document.addEventListener('DOMContentLoaded', function () {
+            setTimeout(initTest, 0);
+        });
+
+        async function sleep(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
+        function createVideoElement() {
+            const video = document.createElement('video');
+            video.controls = true;
+            video.style.width = '50%';
+            video.style.height = '50%';
+            document.body.appendChild(video);
+            return video;
+        }
+
+        async function initTest() {
+            await createVideo1AndPause();
+            await sleep(STEP_DELAY);
+
+            await createVideo3MseNoAppend();
+            await sleep(STEP_DELAY);
+            destroyVideo1();
+            await sleep(STEP_DELAY);
+            await appendVideo3();
+            await playVideo3();
+        }
+
+        // Step 1: Create video1 (progressive, video-only), load and pause
+        async function createVideo1AndPause() {
+            video1 = createVideoElement();
+            video1.src = videoOnlyUrl;
+
+            video1.load();
+            video1.addEventListener('loadedmetadata', function onLoadedMetadata(event) {
+                video1.removeEventListener('loadedmetadata', onLoadedMetadata);
+                video1.pause();
+                console.log("Step 1 (0s): Video 1 loaded and paused (progressive, video-only)");
+            }, { once: true });
+        }
+
+        // Step 2: Create video2 as MSE, append init + 3 segments, and play
+        async function createAndPlayVideo2() {
+            console.log("Step 2 (5s): Creating Video 2 MSE...");
+            video2 = createVideoElement();
+
+            ms2 = await asyncPrepareMediaSource(video2);
+            videoSb2 = await asyncPrepareSourceBuffer(ms2, videoMimeType);
+            audioSb2 = await asyncPrepareSourceBuffer(ms2, audioMimeType);
+
+            console.log("Step 2: Appending segments to Video 2...");
+            // Append init segments
+            await asyncFetchAndAppend(ms2, videoSb2, baseVideoUrl + "init.mp4");
+            await asyncFetchAndAppend(ms2, audioSb2, baseAudioUrl + "init.mp4");
+
+            // Append 3 media segments
+            await asyncFetchAndAppend(ms2, videoSb2, baseVideoUrl + "0001.m4s");
+            await asyncFetchAndAppend(ms2, audioSb2, baseAudioUrl + "0001.m4s");
+            await asyncFetchAndAppend(ms2, videoSb2, baseVideoUrl + "0002.m4s");
+            await asyncFetchAndAppend(ms2, audioSb2, baseAudioUrl + "0002.m4s");
+            await asyncFetchAndAppend(ms2, videoSb2, baseVideoUrl + "0003.m4s");
+            await asyncFetchAndAppend(ms2, audioSb2, baseAudioUrl + "0003.m4s");
+
+            await video2.play();
+            console.log("Step 2: Video 2 MSE playing (audio + video)");
+        }
+
+        // Step 3: Destroy video2
+        function destroyVideo2() {
+            console.log("Step 3 (15s): Destroying Video 2...");
+            if (video2) {
+                video2.pause();
+                video2.src = '';
+                video2.load();
+                video2.remove();
+                if (ms2 && ms2.readyState === 'open') {
+                    ms2.endOfStream();
+                }
+                console.log("Step 3: Video 2 destroyed");
+            }
+        }
+
+        // Step 4: Create video3 as MSE (no append)
+        async function createVideo3MseNoAppend() {
+            console.log("Step 4 (20s): Creating Video 3 MSE (no data append)...");
+            video3 = createVideoElement();
+
+            ms3 = await asyncPrepareMediaSource(video3);
+            videoSb3 = await asyncPrepareSourceBuffer(ms3, videoMimeType);
+            audioSb3 = await asyncPrepareSourceBuffer(ms3, audioMimeType);
+
+            video3.pause();
+            console.log("Step 4: Video 3 MSE loaded with no data append");
+        }
+
+        // Step 5: Destroy video1
+        function destroyVideo1() {
+            console.log("Step 5 (25s): Destroying Video 1...");
+            video1.pause();
+            video1.src = '';
+            video1.load();
+            video1.remove();
+            console.log("Step 5: Video 1 destroyed");
+        }
+
+        // Step 6: Append data to video3 and play
+        async function appendVideo3() {
+            console.log("Step 6 (30s): Appending segments to Video 3...");
+            // Append init segments
+            await asyncFetchAndAppend(ms3, videoSb3, baseVideoUrl + "init.mp4");
+            await asyncFetchAndAppend(ms3, audioSb3, baseAudioUrl + "init.mp4");
+
+            // Append 3 media segments
+            await asyncFetchAndAppend(ms3, videoSb3, baseVideoUrl + "0001.m4s");
+            await asyncFetchAndAppend(ms3, audioSb3, baseAudioUrl + "0001.m4s");
+            await asyncFetchAndAppend(ms3, videoSb3, baseVideoUrl + "0002.m4s");
+            await asyncFetchAndAppend(ms3, audioSb3, baseAudioUrl + "0002.m4s");
+            await asyncFetchAndAppend(ms3, videoSb3, baseVideoUrl + "0003.m4s");
+            await asyncFetchAndAppend(ms3, audioSb3, baseAudioUrl + "0003.m4s");
+
+            console.log("Step 6: Video 3 appended");
+        }
+
+        async function playVideo3() {
+            console.log("Step 6 (30s): Playing Video 3...");
+            await video3.play();
+            console.log("Step 6: Video 3 playing (audio + video)");
+        }
+    </script>
+</body>
+
+</html>
