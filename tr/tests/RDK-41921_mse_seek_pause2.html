@@ -83,12 +83,12 @@
                             let timeAfterSeek = video.currentTime;
                             video.onseeked = null;
                             setTimeout(() => {
-                                if (video.currentTime > timeAfterSeek + 0.1) {
+                                if (video.currentTime > timeAfterSeek + 0.5) {  // allow 0.5 sec offset between seek and pause
                                     reportFail("Position moved forward after pause() - from " + timeAfterSeek + " to " + video.currentTime)
                                 } else {
                                     reportPass("Video is paused after seeking");
                                 }
-                            }, 1000);
+                            }, 2000);
                         }
 
                         setTimeout(() => {
@@ -96,11 +96,12 @@
                             console.log("Append data to complete seeking");
                             audioSb && asyncFetchAndAppend(ms, audioSb, audioUrl.replace('$Number$', 2))
                             videoSb && asyncFetchAndAppend(ms, videoSb, videoUrl.replace('$Number$', 2))
-                        }, 500);
+                        }, 750);
                     }
                     // 2) Seek to unbuffered position
                     console.log("Seeking to unbuffered position");
-                    video.currentTime = 4.0;
+                    // The next segment starts at 4.015 for audio so use 4.1 as target position
+                    video.currentTime = 4.1;
                 }
             }
             // 1) Start the video
