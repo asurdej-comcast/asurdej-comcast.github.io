@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+	<meta charset='UTF-8' />
+	<meta http-equiv='Cache-Control' content='no-cache, no-store, must-revalidate' />
+	<meta http-equiv='Pragma' content='no-cache' />
+	<meta http-equiv='Expires' content='0' />
+	<title>MSE reopen at EOS test - clear representation switch</title>
+	<style>
+		video {
+			width: 100%;
+			height: 100%;
+		}
+
+		body {
+			margin: 0;
+			padding: 0;
+			background-color: white;
+			overflow: hidden;
+		}
+	</style>
+	<script src="../lib/utils.js"></script>
+	<script src="../lib/mse.js"></script>
+</head>
+
+<body>
+	<script type='text/javascript'>
+	    const clearBaseURL = 'https://media.axprod.net/TestVectors/v7-Clear/'
+        const protectedBaseURL = 'https://media.axprod.net/TestVectors/v7-MultiDRM-SingleKey/'
+        const initSegmentTemplate = "$RepresentationID$/init.mp4"
+        const segmentTemplate = "$RepresentationID$/$Number$.m4s"
+
+		const STREAMS = {
+            video : {
+                h264: {
+                    288 : { id: "1", codec: "avc1.64001f"},
+                    360 : { id: "2", codec: "avc1.64001f"},
+                    480 : { id: "3", codec: "avc1.640028"},
+                    720 : { id: "4", codec: "avc1.640032"},
+                    1080: { id: "5", codec: "avc1.640033"},
+                    1440: { id: "6", codec: "avc1.640034"},
+                    2160: { id: "7", codec: "avc1.640034"},
+                },
+                h265: {
+                    288 : { id: "8",  codec: "hev1.2.4.L63.90"},
+                    360 : { id: "9",  codec: "hev1.2.4.L63.90"},
+                    480 : { id: "10", codec: "hev1.2.4.L90.90"},
+                    720 : { id: "11", codec: "hev1.2.4.L93.90"},
+                    1080: { id: "12", codec: "hev1.2.4.L120.90"},
+                    1440: { id: "13", codec: "hev1.2.4.L150.90"},
+                    2160: { id: "14", codec: "hev1.2.4.L150.90"},
+                }
+            },
+            audio : {
+                48000: {id: "15", codec: "mp4a.40.29"},
+            }
+        }
+
+        function getMediaURLToS(encrypted, id, num) {
+            if (id < 0 || num < 0)
+                return undefined
+
+            let baseURL = (encrypted ? protectedBaseURL : clearBaseURL);
+            if (num == 0) {
+                return baseURL + initSegmentTemplate.replace("$RepresentationID$", id)
+            }
+            return baseURL + segmentTemplate.replace("$RepresentationID$", id).replace('$Number$', num.toString().padStart(4, "0"));
+        }
+
+        const audioUrl = 'https://dash.akamaized.net/akamai/bbb_30fps/bbb_a64k/bbb_a64k_$number.m4a'
+        const videoUrl = 'https://dash.akamaized.net/akamai/bbb_30fps/bbb_30fps_1280x720_4000k/bbb_30fps_1280x720_4000k_$number.m4v'
+
+		let video = null
+		let ms = null
+		let audioSb = null
+		let videoSb = null
+		let currentVideoRep = STREAMS.video.h264[720]
+		let currentAudioRep = STREAMS.audio[48000]
+		let switched = false
+		let segmentsPerPhase = 3 // init segment and 2 data segments
+
+		document.addEventListener('DOMContentLoaded', function () {
+			setTimeout(startApp, 0)
+		})
+
+		function cleanup() {
+			console.log("Cleanup")
+			let srcUrl = video.src
+			video.removeAttribute('src')
+			video.load()
+			video.remove()
+			video = null
+			window.URL.revokeObjectURL(srcUrl)
+		}
+
+		// Appends the next `count` aligned video/audio segments, advancing the shared segment counters
+		async function appendSegmentsToS(videoID, audioID, start, count) {
+			for (let i = 0; i < count; i++) {
+				await asyncFetchAndAppend(ms, videoSb, getMediaURLToS(false, videoID, start + i))
+				await asyncFetchAndAppend(ms, audioSb, getMediaURLToS(false, audioID, start + i))
+			}
+		}
+
+		async function appendSegmentsBBB(start, count) {
+			for (let i = 0; i < count; i++) {
+				await asyncFetchAndAppend(ms, videoSb, videoUrl.replace('$number', (start + i).toString()))
+				await asyncFetchAndAppend(ms, audioSb, audioUrl.replace('$number', (start + i).toString()))
+			}
+		}
+
+		async function startApp() {
+
+			video = document.createElement('video')
+			document.body.appendChild(video)
+
+			video.addEventListener('error', function (e) {
+				reportFail('Test failed. Got an error: ' + video.error.code + ', ' + video.error.message)
+				cleanup()
+			})
+
+			ms = new MediaSource()
+			await new Promise((resolve, reject) => {
+				ms.addEventListener('sourceopen', function () {
+					console.log('onSourceOpen()')
+					resolve()
+				}, { once: true })
+				video.src = window.URL.createObjectURL(ms)
+			})
+
+			videoSb = ms.addSourceBuffer('video/mp4; codecs="' + currentVideoRep.codec + '"')
+			audioSb = ms.addSourceBuffer('audio/mp4; codecs="' + currentAudioRep.codec + '"')
+
+			// audioSb = ms.addSourceBuffer('audio/mp4; codecs="mp4a.40.2"')
+            // videoSb = ms.addSourceBuffer('video/mp4; codecs="avc1.640028"')
+
+
+			await appendSegmentsToS(currentVideoRep.id, currentAudioRep.id, 0, segmentsPerPhase)
+			//await appendSegmentsBBB(0, segmentsPerPhase*2)
+
+			ms.endOfStream()
+
+			video.addEventListener('ended', onEnded)
+
+			//setTimeout(onEnded, 10000)
+
+			failTimeout(30, "Neither eos nor error received", cleanup)
+			console.log("Starting playback")
+			video.play();
+		}
+
+		async function onEnded() {
+			if (!switched) {
+				video.pause()
+				switched = true
+				console.log("Switching streams");
+				// currentVideoRep = STREAMS.video.h264[720]
+				// currentAudioRep = STREAMS.audio[48000]
+
+				videoSb.timestampOffset = ms.duration
+				audioSb.timestampOffset = ms.duration
+
+				// videoSb.abort()
+				// audioSb.abort()
+
+				//await appendSegmentsToS(currentVideoRep.id, currentAudioRep.id, segmentsPerPhase, segmentsPerPhase)
+				await appendSegmentsBBB(0, segmentsPerPhase)
+
+				ms.endOfStream()
+				video.play()
+				return
+			}
+			reportPass('Test passed. Video and audio representations were switched and played to completion using the same MediaSource/SourceBuffers')
+			cleanup()
+		}
+	</script>
+    <button onclick="video.play()" style="position: fixed; top: 0px; left: 0px; width: 100px; height: 50px;">video.play()</button>
+</body>
+
+</html>
